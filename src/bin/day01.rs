@@ -26,8 +26,8 @@ fn main() {
 }
 
 fn parse_input<R: BufRead>(reader: R) -> Vec<i64> {
-    return reader
+    reader
         .lines()
         .map(|line| line.unwrap().parse::<i64>().unwrap())
-        .collect();
+        .collect()
 }
