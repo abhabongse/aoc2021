@@ -11,6 +11,8 @@ license = "Apache-2.0"
 publish = false
 
 [dependencies]
+anyhow = "1.0"
 itertools = "0.10.0"
+lazy_static = "1.4.0"
 regex = "1.5"
 structopt = "0.3"
