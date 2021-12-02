@@ -1,4 +1,5 @@
-//! Day 2: Dive!
+//! Day 2: Dive!, Advent of Code 2021
+//! https://adventofcode.com/2021/day/2
 use anyhow::bail;
 use aoc2021::argparser;
 use std::io::BufRead;

@@ -1,4 +1,5 @@
 //! Day 1: Sonar Sweep, Advent of Code 2021
+//! https://adventofcode.com/2021/day/1
 use aoc2021::argparser;
 use itertools::Itertools;
 use std::io::BufRead;
