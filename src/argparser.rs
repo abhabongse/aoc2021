@@ -1,8 +1,12 @@
 use std::io::{self, BufRead, BufReader};
+use std::path::Path;
 
-pub fn reader_from_file(input_file: Option<&str>) -> anyhow::Result<Box<dyn BufRead>> {
-    Ok(match input_file {
-        None => Box::new(BufReader::new(io::stdin())),
-        Some(filename) => Box::new(BufReader::new(std::fs::File::open(filename)?)),
+/// Obtains a buffer reader from the given input file.
+/// However, if '-' is specified, then standard input will be used as source.
+pub fn reader_from_file<P: AsRef<Path>>(input_file: P) -> anyhow::Result<Box<dyn BufRead>> {
+    Ok(if input_file.as_ref() == Path::new("-") {
+        Box::new(BufReader::new(io::stdin()))
+    } else {
+        Box::new(BufReader::new(std::fs::File::open(input_file)?))
     })
 }

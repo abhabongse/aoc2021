@@ -1,13 +1,15 @@
 //! Day 2: Dive!, Advent of Code 2021
 //! https://adventofcode.com/2021/day/2
-use anyhow::bail;
-use aoc2021::argparser;
 use std::io::BufRead;
 use std::str::FromStr;
 
+use anyhow::bail;
+
+use aoc2021::argparser;
+
 fn main() {
-    let input_file = std::env::args().nth(1);
-    let reader = argparser::reader_from_file(input_file.as_deref()).expect("cannot open file");
+    let input_file = std::env::args().nth(1).unwrap_or_else(|| "-".into());
+    let reader = argparser::reader_from_file(input_file).expect("cannot open file");
     let input = parse_input(reader).expect("cannot parse input");
 
     let p1_submarine =
