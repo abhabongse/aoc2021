@@ -6,7 +6,7 @@ use std::io::BufRead;
 
 fn main() {
     let input_file = std::env::args().nth(1);
-    let reader = argparser::reader_from_file(input_file.as_deref());
+    let reader = argparser::reader_from_file(input_file.as_deref()).expect("cannot open file");
     let input = parse_input(reader).expect("cannot parse input");
 
     let p1_answer: usize = input
@@ -26,7 +26,7 @@ fn main() {
     println!("Part 2 answer: {}", p2_answer);
 }
 
-fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<i64>> {
+fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<isize>> {
     reader
         .lines()
         .map(|line| Ok(line?.trim().parse()?))

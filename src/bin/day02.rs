@@ -7,7 +7,7 @@ use std::str::FromStr;
 
 fn main() {
     let input_file = std::env::args().nth(1);
-    let reader = argparser::reader_from_file(input_file.as_deref());
+    let reader = argparser::reader_from_file(input_file.as_deref()).expect("cannot open file");
     let input = parse_input(reader).expect("cannot parse input");
 
     let p1_submarine =
@@ -51,9 +51,9 @@ fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<Command>> {
 /// Submarine commands: move instructions
 #[derive(Debug, Clone, Eq, PartialEq)]
 enum Command {
-    Forward(i64),
-    Down(i64),
-    Up(i64),
+    Forward(isize),
+    Down(isize),
+    Up(isize),
 }
 
 impl FromStr for Command {
@@ -74,14 +74,14 @@ impl FromStr for Command {
 /// Submarine positions
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 struct SubmarinePos {
-    x: i64,
-    y: i64,
+    x: isize,
+    y: isize,
 }
 
 /// Submarine status: positions and aim
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 struct SubmarineStatus {
-    x: i64,
-    y: i64,
-    aim: i64,
+    x: isize,
+    y: isize,
+    aim: isize,
 }
