@@ -45,7 +45,7 @@ fn main() {
 }
 
 fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<Command>> {
-    reader.lines().map(|line| line.unwrap().parse()).collect()
+    reader.lines().map(|line| line?.parse()).collect()
 }
 
 /// Submarine commands: move instructions

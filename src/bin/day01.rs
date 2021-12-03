@@ -3,7 +3,6 @@
 use aoc2021::argparser;
 use itertools::Itertools;
 use std::io::BufRead;
-use std::num::ParseIntError;
 
 fn main() {
     let input_file = std::env::args().nth(1);
@@ -27,6 +26,6 @@ fn main() {
     println!("Part 2 answer: {}", p2_answer);
 }
 
-fn parse_input<R: BufRead>(reader: R) -> Result<Vec<i64>, ParseIntError> {
-    reader.lines().map(|line| line.unwrap().parse()).collect()
+fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<i64>> {
+    reader.lines().map(|line| Ok(line?.parse()?)).collect()
 }
