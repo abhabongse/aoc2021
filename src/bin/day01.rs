@@ -27,5 +27,8 @@ fn main() {
 }
 
 fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<i64>> {
-    reader.lines().map(|line| Ok(line?.parse()?)).collect()
+    reader
+        .lines()
+        .map(|line| Ok(line?.trim().parse()?))
+        .collect()
 }
