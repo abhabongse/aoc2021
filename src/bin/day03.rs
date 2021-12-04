@@ -1,7 +1,7 @@
 //! Day 3: Binary Diagnostic, Advent of Code 2021
 //! https://adventofcode.com/2021/day/3
-use std::cmp::Ordering;
 use std::io::BufRead;
+use std::ops::Not;
 
 use anyhow::bail;
 use itertools::{Itertools, MinMaxResult};
@@ -46,21 +46,11 @@ fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<BitVec>> {
 /// - epsilon = radix minority voting of bit vector data
 fn compute_power_consumption(data: &[BitVec]) -> anyhow::Result<usize> {
     let bit_length = common_bit_length(data)?;
-    let zipped_result = (0..bit_length)
-        .map(|i| {
-            let tug_result: isize = data.iter().map(|v| if v[i] { 1 } else { -1 }).sum();
-            match tug_result.cmp(&0) {
-                Ordering::Greater => Ok((true, false)),
-                Ordering::Less => Ok((false, true)),
-                Ordering::Equal => bail!("cannot decide strict majority or minority"),
-            }
-        })
-        .collect::<anyhow::Result<Vec<_>>>();
-
-    let (gamma, epsilon): (BitVec, BitVec) = zipped_result?.iter().copied().unzip();
-    let gamma = bitvec_to_integer(&gamma);
-    let epsilon = bitvec_to_integer(&epsilon);
-    Ok(gamma * epsilon)
+    let gamma: BitVec = (0..bit_length)
+        .map(|i| majority_vote(data.iter().map(|v| v[i])))
+        .collect();
+    let epsilon: BitVec = gamma.iter().map(|c| c.not()).collect();
+    Ok(bitvec_to_integer(&gamma) * bitvec_to_integer(&epsilon))
 }
 
 /// Computes the common bit length among the collection of bit vectors.
@@ -74,6 +64,11 @@ fn common_bit_length(data: &[BitVec]) -> anyhow::Result<usize> {
         }
         MinMaxResult::MinMax(l, _) | MinMaxResult::OneElement(l) => Ok(l),
     }
+}
+
+/// Tallies the votes and returns the majority boolean. Returns true is case of a tie.
+fn majority_vote<I: Iterator<Item = bool>>(votes: I) -> bool {
+    votes.map(|v| if v { 1 } else { -1 }).sum::<isize>() >= 0
 }
 
 /// Calculates the integer representation of the given bit vector in MSB-first order.
