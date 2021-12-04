@@ -1,14 +1,13 @@
 //! Day 3: Binary Diagnostic, Advent of Code 2021
 //! https://adventofcode.com/2021/day/3
 use std::io::BufRead;
-use std::ops::Not;
+use std::ops::{Deref, Not};
+use std::str::FromStr;
 
 use anyhow::bail;
 use itertools::{Itertools, MinMaxResult};
 
 use aoc2021::argparser;
-
-type BitVec = Vec<bool>;
 
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
@@ -25,20 +24,42 @@ fn main() {
 }
 
 fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<BitVec>> {
-    reader
-        .lines()
-        .map(|line| {
-            line?
-                .trim()
-                .bytes()
-                .map(|c| match c {
-                    b'0' => Ok(false),
-                    b'1' => Ok(true),
-                    _ => bail!("invalid character in bitstring: {}", c),
-                })
-                .collect::<anyhow::Result<BitVec>>()
-        })
-        .collect()
+    reader.lines().map(|line| line?.parse()).collect()
+}
+
+/// Bit vector wrapper
+#[derive(Debug, Clone)]
+struct BitVec(Vec<bool>);
+
+impl FromStr for BitVec {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let inner: anyhow::Result<Vec<_>> = s
+            .trim()
+            .bytes()
+            .map(|c| match c {
+                b'0' => Ok(false),
+                b'1' => Ok(true),
+                _ => bail!("invalid character in bit string: {}", c),
+            })
+            .collect();
+        Ok(BitVec(inner?))
+    }
+}
+
+impl FromIterator<bool> for BitVec {
+    fn from_iter<T: IntoIterator<Item = bool>>(iter: T) -> Self {
+        BitVec(iter.into_iter().collect())
+    }
+}
+
+impl Deref for BitVec {
+    type Target = Vec<bool>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 /// Computes the power consumption, which is the product of these two factors:
