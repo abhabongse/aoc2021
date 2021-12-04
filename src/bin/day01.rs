@@ -7,9 +7,9 @@ use itertools::Itertools;
 use aoc2021::argparser;
 
 fn main() {
-    let input_file = std::env::args().nth(1).unwrap_or_else(|| "-".into());
-    let reader = argparser::reader_from_file(input_file).expect("cannot open file");
-    let input = parse_input(reader).expect("cannot parse input");
+    let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
+    let input_reader = input_src.to_reader().expect("cannot open file");
+    let input = parse_input(input_reader).expect("cannot parse input");
 
     let p1_answer: usize = input
         .iter()

@@ -11,12 +11,17 @@ use aoc2021::argparser;
 type BitVec = Vec<bool>;
 
 fn main() {
-    let input_file = std::env::args().nth(1).unwrap_or_else(|| "-".into());
-    let reader = argparser::reader_from_file(input_file).expect("cannot open file");
-    let input = parse_input(reader).expect("cannot parse input");
+    let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
+    let input_reader = input_src.to_reader().expect("cannot open file");
+    let input = parse_input(input_reader).expect("cannot parse input");
 
-    let p1_answer = compute_power_consumption(input.as_slice()).unwrap();
+    let p1_answer = compute_power_consumption(input.as_slice())
+        .expect("error while computing power consumption");
     println!("Part 1 answer: {}", p1_answer);
+
+    let p2_answer = compute_life_support_rating(input.as_slice())
+        .expect("error while computing life support rating");
+    println!("Part 2 answer: {}", p2_answer);
 }
 
 fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<BitVec>> {
@@ -80,6 +85,6 @@ fn bitvec_to_integer(s: &BitVec) -> usize {
 /// Compute the life support rating, which is the product of these two factors:
 /// - oxygen generator rating = multi-round rotating majority vote
 /// - CO₂ scrubber rating = multi-round rotating minority vote
-fn compute_life_support_rating(data: &[String]) -> anyhow::Result<usize> {
+fn compute_life_support_rating(data: &[BitVec]) -> anyhow::Result<usize> {
     todo!()
 }
