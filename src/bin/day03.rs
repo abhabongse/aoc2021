@@ -5,7 +5,7 @@ use std::ops::{Deref, Not};
 use std::str::FromStr;
 
 use anyhow::bail;
-use itertools::{Itertools, MinMaxResult};
+use itertools::{FoldWhile, Itertools, MinMaxResult};
 
 use aoc2021::argparser;
 
@@ -63,8 +63,8 @@ impl Deref for BitVec {
 }
 
 /// Computes the power consumption, which is the product of these two factors:
-/// - gamma = radix majority voting of bit vector data
-/// - epsilon = radix minority voting of bit vector data
+/// -  gamma = radix majority voting of bit vector data
+/// -  epsilon = radix minority voting of bit vector data
 fn compute_power_consumption(data: &[BitVec]) -> anyhow::Result<usize> {
     let bit_length = common_bit_length(data)?;
     let gamma: BitVec = (0..bit_length)
@@ -72,6 +72,46 @@ fn compute_power_consumption(data: &[BitVec]) -> anyhow::Result<usize> {
         .collect();
     let epsilon: BitVec = gamma.iter().map(|c| c.not()).collect();
     Ok(bitvec_to_integer(&gamma) * bitvec_to_integer(&epsilon))
+}
+
+/// Compute the life support rating, which is the product of these two factors:
+/// -  oxygen generator rating = multi-round rotating majority vote
+/// -  CO₂ scrubber rating = multi-round rotating minority vote
+fn compute_life_support_rating(data: &[BitVec]) -> anyhow::Result<usize> {
+    let oxygen_generator_rating =
+        eliminate_until_last(data, |votes| majority_vote(votes.iter().copied()));
+    let co2_scrubber_rating =
+        eliminate_until_last(data, |votes| majority_vote(votes.iter().copied()).not());
+    Ok(bitvec_to_integer(oxygen_generator_rating) * bitvec_to_integer(co2_scrubber_rating))
+}
+
+/// Performs multi-round elimination among all bit vectors until one survivor prevails.
+/// Each round i, the remaining candidates compares i-th digit according to the tally criterion.
+/// Candidates matching the result of the tally criterion survives to the next round.
+/// TODO: fix the potentially panic scenario when boolean indexing happens out-of-bounds.
+fn eliminate_until_last<F: Fn(&[bool]) -> bool>(data: &[BitVec], tally_criterion: F) -> &BitVec {
+    let candidates: Vec<_> = (0..data.len()).collect();
+    let last_survivor = (0usize..)
+        .fold_while(candidates, |remaining, i| {
+            if remaining.len() <= 1 {
+                FoldWhile::Done(remaining)
+            } else {
+                let votes: Vec<_> = remaining.iter().map(|r| data[*r][i]).collect();
+                let vote_result = tally_criterion(votes.as_slice());
+                let survivors: Vec<_> = remaining
+                    .into_iter()
+                    .filter(|r| data[*r][i] == vote_result)
+                    .collect();
+                FoldWhile::Continue(survivors)
+            }
+        })
+        .into_inner();
+    &data[last_survivor[0]]
+}
+
+/// Tallies the votes and returns the majority boolean. Returns true is case of a tie.
+fn majority_vote<I: Iterator<Item = bool>>(votes: I) -> bool {
+    votes.map(|v| if v { 1 } else { -1 }).sum::<isize>() >= 0
 }
 
 /// Computes the common bit length among the collection of bit vectors.
@@ -87,20 +127,7 @@ fn common_bit_length(data: &[BitVec]) -> anyhow::Result<usize> {
     }
 }
 
-/// Tallies the votes and returns the majority boolean. Returns true is case of a tie.
-fn majority_vote<I: Iterator<Item = bool>>(votes: I) -> bool {
-    votes.map(|v| if v { 1 } else { -1 }).sum::<isize>() >= 0
-}
-
 /// Calculates the integer representation of the given bit vector in MSB-first order.
-#[allow(clippy::ptr_arg)]
 fn bitvec_to_integer(s: &BitVec) -> usize {
     s.iter().fold(0, |acc, val| 2 * acc + (*val) as usize)
-}
-
-/// Compute the life support rating, which is the product of these two factors:
-/// - oxygen generator rating = multi-round rotating majority vote
-/// - CO₂ scrubber rating = multi-round rotating minority vote
-fn compute_life_support_rating(data: &[BitVec]) -> anyhow::Result<usize> {
-    todo!()
 }
