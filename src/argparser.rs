@@ -19,7 +19,7 @@ impl InputSrc {
     }
 
     /// Obtains a buffer reader from the input source.
-    pub fn to_reader(&self) -> anyhow::Result<Box<dyn BufRead>> {
+    pub fn create_reader(&self) -> anyhow::Result<Box<dyn BufRead>> {
         Ok(match self {
             Self::Stdin => Box::new(BufReader::new(io::stdin())),
             Self::File(name) => Box::new(BufReader::new(std::fs::File::open(name)?)),

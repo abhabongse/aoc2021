@@ -9,7 +9,7 @@ use aoc2021::argparser;
 
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
-    let input_reader = input_src.to_reader().expect("cannot open file");
+    let input_reader = input_src.create_reader().expect("cannot open file");
     let input = parse_input(input_reader).expect("cannot parse input");
 
     let p1_submarine =
