@@ -1,25 +1,14 @@
 //! Day 1: Sonar Sweep, Advent of Code 2021
 //! https://adventofcode.com/2021/day/1
 use std::io::BufRead;
-use std::path::PathBuf;
 
 use itertools::Itertools;
-use structopt::StructOpt;
 
 use aoc2021::argparser;
 
-/// Program input options for Advent of Code solution files.
-/// It optionally expects a single positional argument locating the input file!
-#[derive(Debug, StructOpt)]
-struct Opt {
-    /// Path to input file. Omit or specify '-' to use standard input.
-    #[structopt(name = "INPUT_FILE", default_value = "-", parse(from_os_str))]
-    input_file: PathBuf,
-}
-
 fn main() {
-    let opt = Opt::from_args();
-    let reader = argparser::reader_from_file(opt.input_file).expect("cannot open file");
+    let input_file = std::env::args().nth(1).unwrap_or_else(|| "-".into());
+    let reader = argparser::reader_from_file(input_file).expect("cannot open file");
     let input = parse_input(reader).expect("cannot parse input");
 
     let p1_answer: usize = input
