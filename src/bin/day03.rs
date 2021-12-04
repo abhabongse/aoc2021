@@ -4,7 +4,7 @@ use std::io::BufRead;
 use std::ops::{Deref, Not};
 use std::str::FromStr;
 
-use anyhow::bail;
+use anyhow::{anyhow, bail};
 use itertools::{FoldWhile, Itertools, MinMaxResult};
 
 use aoc2021::argparser;
@@ -82,31 +82,44 @@ fn compute_life_support_rating(data: &[BitVec]) -> anyhow::Result<usize> {
         eliminate_until_last(data, |votes| majority_vote(votes.iter().copied()));
     let co2_scrubber_rating =
         eliminate_until_last(data, |votes| majority_vote(votes.iter().copied()).not());
-    Ok(bitvec_to_integer(oxygen_generator_rating) * bitvec_to_integer(co2_scrubber_rating))
+    Ok(bitvec_to_integer(oxygen_generator_rating?) * bitvec_to_integer(co2_scrubber_rating?))
 }
 
 /// Performs multi-round elimination among all bit vectors until one survivor prevails.
 /// Each round i, the remaining candidates compares i-th digit according to the tally criterion.
 /// Candidates matching the result of the tally criterion survives to the next round.
 /// TODO: fix the potentially panic scenario when boolean indexing happens out-of-bounds.
-fn eliminate_until_last<F: Fn(&[bool]) -> bool>(data: &[BitVec], tally_criterion: F) -> &BitVec {
+fn eliminate_until_last<F>(data: &[BitVec], tally_criterion: F) -> anyhow::Result<&BitVec>
+where
+    F: Fn(&[bool]) -> bool,
+{
     let candidates: Vec<_> = (0..data.len()).collect();
     let last_survivor = (0usize..)
-        .fold_while(candidates, |remaining, i| {
-            if remaining.len() <= 1 {
-                FoldWhile::Done(remaining)
-            } else {
-                let votes: Vec<_> = remaining.iter().map(|r| data[*r][i]).collect();
-                let vote_result = tally_criterion(votes.as_slice());
+        .fold_while(Ok(candidates), |remaining, i| match remaining {
+            Err(_) => FoldWhile::Done(remaining),
+            Ok(remaining) if remaining.len() <= 1 => FoldWhile::Done(Ok(remaining)),
+            Ok(remaining) => {
+                let votes: anyhow::Result<Vec<bool>> = remaining
+                    .iter()
+                    .map(|r| {
+                        data[*r].get(i).copied().ok_or(anyhow!(
+                            "bit vectors are too short to determine the survivor"
+                        ))
+                    })
+                    .collect();
+                let vote_result = match votes {
+                    Ok(votes) => tally_criterion(votes.as_slice()),
+                    Err(err) => return FoldWhile::Done(Err(err)),
+                };
                 let survivors: Vec<_> = remaining
                     .into_iter()
                     .filter(|r| data[*r][i] == vote_result)
                     .collect();
-                FoldWhile::Continue(survivors)
+                FoldWhile::Continue(Ok(survivors))
             }
         })
         .into_inner();
-    &data[last_survivor[0]]
+    Ok(&data[last_survivor?[0]])
 }
 
 /// Tallies the votes and returns the majority boolean. Returns true is case of a tie.
