@@ -6,6 +6,7 @@ use std::ops::{Deref, Not};
 use std::str::FromStr;
 
 use anyhow::{anyhow, bail};
+use itertools::{FoldWhile, Itertools};
 
 use aoc2021::argparser;
 
@@ -107,18 +108,26 @@ fn eliminate_until_last<F>(numbers: &[BitVec], vote_criterion: F) -> anyhow::Res
 where
     F: Fn(&[&BitVec], usize) -> anyhow::Result<bool>,
 {
-    let mut candidates: Vec<_> = numbers.iter().collect();
-    for index in 0usize.. {
-        if candidates.len() <= 1 {
-            break;
-        }
-        let vote_result = vote_criterion(candidates.as_slice(), index)?;
-        candidates = candidates
-            .into_iter()
-            .filter(|n| n[index] == vote_result)
-            .collect();
-    }
-    candidates
+    (0usize..)
+        .fold_while(
+            Ok(numbers.iter().collect::<Vec<_>>()), // initial participants
+            |remaining, index| match remaining {
+                Err(_) => FoldWhile::Done(remaining),
+                Ok(candidates) if candidates.len() <= 1 => FoldWhile::Done(Ok(candidates)),
+                Ok(candidates) => {
+                    // One round of elimination
+                    let vote_result = match vote_criterion(candidates.as_slice(), index) {
+                        Ok(vote_result) => vote_result,
+                        Err(err) => return FoldWhile::Done(Err(err)),
+                    };
+                    FoldWhile::Continue(Ok(candidates
+                        .into_iter()
+                        .filter(|n| n[index] == vote_result)
+                        .collect()))
+                }
+            },
+        )
+        .into_inner()?
         .get(0)
         .copied()
         .ok_or(anyhow!("empty collection of bit vectors"))
