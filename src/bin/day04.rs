@@ -1,9 +1,10 @@
 //! Day 4: Giant Squid, Advent of Code 2021
 //! https://adventofcode.com/2021/day/4
+use std::collections::VecDeque;
 use std::error::Error;
 use std::fmt::Debug;
+use std::io;
 use std::io::BufRead;
-use std::ops::Not;
 use std::str::FromStr;
 
 use anyhow::anyhow;
@@ -26,7 +27,7 @@ fn main() {
     println!("Part 2 answer: {}", p2_answer);
 }
 
-/// Represents input data read from source
+/// Represents input data for the problem
 #[derive(Debug, Clone)]
 struct Input {
     lots: Vec<usize>,
@@ -35,68 +36,80 @@ struct Input {
 
 impl Input {
     /// Constructs the input data from a buffer reader
+    ///
+    /// An earlier version of this method short-circuits the error at the earliest convenience.
+    /// This behavior was removed due to the growing code complexity from such implementation.
     fn from_buffer<R: BufRead>(reader: R) -> anyhow::Result<Self> {
-        // The result is an iterator which produces multiple batches, each of which separated by an empty line.
-        // Each element produced by the iterator is a vector of lines belong to the same batch.
-        let mut batches = reader.lines().batching(|it| {
-            let result: anyhow::Result<Vec<_>> = it
-                .take_while(|line| match line {
-                    Ok(line) => line.trim().is_empty().not(),
-                    Err(_) => false,
-                })
-                .map(|line| Ok(line?))
-                .collect();
-            match result {
-                Ok(collected) if collected.is_empty() => None,
-                _ => Some(result),
-            }
-        });
+        let lines: Vec<_> = reader.lines().collect::<Result<_, io::Error>>()?;
+        let mut batches: VecDeque<_> = lines.into_iter().batching(Input::collect_batch).collect();
 
-        // Parse lots from the first batch
-        let lots: Vec<_> = batches
-            .next()
-            .ok_or(anyhow!("cannot read lots from first batch"))??
+        let lots = batches
+            .pop_front()
+            .ok_or(anyhow!("missing lots data"))?
             .iter()
             .map(|line| line.split(','))
             .flatten()
             .map(|token| Ok(token.trim().parse()?))
             .collect::<anyhow::Result<_>>()?;
 
-        // Parse boards for the remaining batches
         let boards: Vec<_> = batches
-            .map(|batch| batch.and_then(Board::from_lines))
+            .into_iter()
+            .map(Board::from_lines)
             .collect::<anyhow::Result<_>>()?;
 
         Ok(Input { lots, boards })
     }
+
+    /// Collects strings from the given iterator into a vector until a seemingly empty string is reached.
+    /// If the iterator is already exhausted in the first place, then None is returned.
+    /// Note that a string containing just whitespaces is considered empty, and will not be part of output.
+    fn collect_batch<I: Iterator<Item = String>>(it: &mut I) -> Option<Vec<String>> {
+        let mut collected: Vec<String> = Vec::new();
+        for line in it {
+            if line.trim().is_empty() {
+                return Some(collected);
+            }
+            collected.push(line);
+        }
+        // Iterator is exhausted; check if the last few lines exists
+        match collected.as_slice() {
+            [] => None,
+            _ => Some(collected),
+        }
+    }
 }
 
-/// Represents bingo board
+/// A bingo board with flexible sizes and element type
+///  - T is the type of board cell element
+///  - R is the number of rows
+///  - C is the number of columns
 #[derive(Debug, Clone)]
 struct Board<T, const R: usize, const C: usize>([[T; C]; R]);
 
 impl<T, const R: usize, const C: usize> Board<T, R, C> {
+    /// Constructs a bingo board from a vector of strings
+    /// where each string represents a bingo row containing numbers separated by whitespaces.
     fn from_lines(lines: Vec<String>) -> anyhow::Result<Self>
     where
         T: FromStr,
         <T as FromStr>::Err: 'static + Error + Sync + Send,
     {
-        let board_numbers: Vec<[T; C]> = lines
+        let board_numbers: [[T; C]; R] = lines
             .into_iter()
             .map(|line| {
-                let row_numbers: Vec<T> = line
+                let row_numbers: [T; C] = line
                     .split_ascii_whitespace()
                     .map(|token| Ok(token.trim().parse()?))
-                    .collect::<anyhow::Result<_>>()?;
-                let row_numbers: [T; C] = row_numbers.try_into().map_err(|v: Vec<T>| {
-                    anyhow!("found a board with {} columns instead of {}", v.len(), C)
-                })?;
+                    .collect::<anyhow::Result<Vec<T>>>()?
+                    .try_into()
+                    .map_err(|v: Vec<_>| {
+                        anyhow!("found a board with {} columns instead of {}", v.len(), C)
+                    })?;
                 Ok(row_numbers)
             })
-            .collect::<anyhow::Result<_>>()?;
-        let board_numbers: [[T; C]; R] = board_numbers.try_into().map_err(|v: Vec<[T; C]>| {
-            anyhow!("found a board with {} rows instead of {}", v.len(), R)
-        })?;
+            .collect::<anyhow::Result<Vec<[T; C]>>>()?
+            .try_into()
+            .map_err(|v: Vec<_>| anyhow!("found a board with {} rows instead of {}", v.len(), R))?;
         Ok(Board(board_numbers))
     }
 }
