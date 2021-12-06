@@ -13,6 +13,7 @@ env:
 
 jobs:
   build-test:
+    name: Build and Run Test
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -21,12 +22,14 @@ jobs:
     - name: Run tests
       run: cargo test --verbose
   clippy:
+    name: Clippy
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - name: Clippy linter check
       run: cargo clippy --all -- -D warnings
   rustfmt:
+    name: Rustfmt
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
