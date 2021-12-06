@@ -135,6 +135,7 @@ where
 
 /// Fetches the votes from all bit vectors by indexing into each bit vector,
 /// and determine the majority boolean result. Returns `true` in case of a tie.
+/// TODO: change signature into an iterator producing &BitVec instead
 fn cast_votes(numbers: &[&BitVec], index: usize) -> anyhow::Result<bool> {
     let tally: isize = numbers
         .iter()
