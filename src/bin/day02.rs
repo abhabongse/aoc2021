@@ -50,7 +50,7 @@ fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<Command>> {
     reader.lines().map(|line| line?.parse()).collect()
 }
 
-/// Submarine commands: move instructions
+/// Submarine commands
 #[derive(Debug, Clone, Eq, PartialEq)]
 enum Command {
     Forward(isize),
@@ -76,14 +76,20 @@ impl FromStr for Command {
 /// Submarine positions
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 struct SubmarinePos {
+    /// x-coordinate
     x: isize,
+    /// y-coordinate
     y: isize,
 }
 
 /// Submarine status: positions and aim
+/// TODO: embed [`SubmarinePos`] as sub-structure
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 struct SubmarineStatus {
+    /// x-coordinate
     x: isize,
+    /// y-coordinate
     y: isize,
+    /// aim propulsion attribute
     aim: isize,
 }
