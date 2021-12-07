@@ -29,6 +29,9 @@ fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<BitVec>> {
 }
 
 /// Bit vector wrapper
+/// TODO: attempts to use [`bitvec::BitVec`] instead.
+///
+/// [`bitvec::BitVec`]: https://docs.rs/bitvec/latest/bitvec/vec/struct.BitVec.html
 #[derive(Debug, Clone)]
 struct BitVec(Vec<bool>);
 

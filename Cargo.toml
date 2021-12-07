@@ -12,9 +12,13 @@ publish = false
 
 [dependencies]
 anyhow = "1.0"
+cgmath = "0.18"
+euclid = "0.22.6"
 itertools = "0.10.0"
 lazy_static = "1.4.0"
+nalgebra = "0.29.0"
 ndarray = "0.15.0"
+num = "0.4"
 regex = "1.5"
 structopt = "0.3"
 thiserror = "1.0"
