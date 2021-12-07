@@ -11,24 +11,25 @@ fn main() {
     let input_reader = input_src.create_reader().expect("cannot open file");
     let input = parse_input(input_reader).expect("cannot parse input");
 
-    let p1_answer: usize = input
+    let p1_inc_count: usize = input
         .iter()
         .tuple_windows()
         .map(|(x, y)| (y > x) as usize)
         .sum();
-    println!("Part 1 answer: {}", p1_answer);
+    println!("Part 1 answer: {}", p1_inc_count);
 
-    let p2_answer: usize = input
+    let p2_inc_count: usize = input
         .iter()
         .tuple_windows()
         .map(|(a, b, c)| a + b + c)
         .tuple_windows()
         .map(|(x, y)| (y > x) as usize)
         .sum();
-    println!("Part 2 answer: {}", p2_answer);
+    println!("Part 2 answer: {}", p2_inc_count);
 }
 
-fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<isize>> {
+/// Parses the report (program input) as a vector of integers.
+fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<i64>> {
     reader
         .lines()
         .map(|line| Ok(line?.trim().parse()?))

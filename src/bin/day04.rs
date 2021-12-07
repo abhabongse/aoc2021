@@ -2,12 +2,16 @@
 //! https://adventofcode.com/2021/day/4
 use std::collections::{HashMap, VecDeque};
 use std::fmt::Debug;
+use std::hash::Hash;
 use std::io;
 use std::io::BufRead;
+use std::iter::Sum;
 use std::ops::Not;
+use std::str::FromStr;
 
 use anyhow::anyhow;
 use itertools::{iproduct, Itertools};
+use num::PrimInt;
 
 use aoc2021::argparser;
 
@@ -18,7 +22,7 @@ fn main() {
 
     // Plays each bingo board with the pre-determined list of lots until reaching the winning state
     // and records the final result consisting of the score and the number of rounds played.
-    let results: Vec<_> = input
+    let play_results: Vec<_> = input
         .boards
         .iter()
         .map(|board| {
@@ -26,27 +30,30 @@ fn main() {
             for (i, lot) in input.lots.iter().copied().enumerate() {
                 let score = checker.mark(lot);
                 if score.is_some() {
-                    return PlayResult { score, rounds: i };
+                    return PlayResult {
+                        score,
+                        rounds_played: i,
+                    };
                 }
             }
             PlayResult {
                 score: None,
-                rounds: input.lots.len(),
+                rounds_played: input.lots.len(),
             }
         })
         .collect();
 
-    let p1_answer = results
+    let p1_answer = play_results
         .iter()
-        .min_by_key(|result| result.rounds)
+        .min_by_key(|result| result.rounds_played)
         .expect("no bingo boards read from the input")
         .score
         .expect("unfinished board; score unavailable");
     println!("Part 1 answer: {}", p1_answer);
 
-    let p2_answer = results
+    let p2_answer = play_results
         .iter()
-        .max_by_key(|result| result.rounds)
+        .max_by_key(|result| result.rounds_played)
         .expect("no bingo boards read from the input")
         .score
         .expect("unfinished board; score unavailable");
@@ -56,8 +63,8 @@ fn main() {
 /// Represents input data for the problem
 #[derive(Debug, Clone)]
 struct Input {
-    lots: Vec<isize>,
-    boards: Vec<Board<5, 5>>,
+    lots: Vec<i64>,
+    boards: Vec<Board<i64, 5, 5>>,
 }
 
 impl Input {
@@ -95,17 +102,26 @@ impl Input {
 ///
 /// [`num::Integer`]: https://docs.rs/num/latest/num/trait.Integer.html
 #[derive(Debug, Clone)]
-struct Board<const R: usize, const C: usize> {
+struct Board<T, const R: usize, const C: usize>
+where
+    T: PrimInt,
+{
     /// Grid numbers of the bingo board.
-    numbers: [[isize; C]; R],
+    numbers: [[T; C]; R],
     /// Auxiliary data mapping from a number to the indexing position on the bingo board.
-    mapper: HashMap<isize, (usize, usize)>,
+    mapper: HashMap<T, (usize, usize)>,
 }
 
-impl<const R: usize, const C: usize> Board<R, C> {
+impl<T, const R: usize, const C: usize> Board<T, R, C>
+where
+    T: PrimInt,
+{
     /// Constructs a bingo board from 2-d array grid of numbers.
-    fn new(numbers: [[isize; C]; R]) -> Self {
-        let mapper: HashMap<isize, (usize, usize)> = numbers
+    fn new(numbers: [[T; C]; R]) -> Self
+    where
+        T: Hash,
+    {
+        let mapper: HashMap<T, (usize, usize)> = numbers
             .into_iter()
             .enumerate()
             .map(|(i, r)| r.into_iter().enumerate().map(move |(j, v)| (v, (i, j))))
@@ -115,7 +131,7 @@ impl<const R: usize, const C: usize> Board<R, C> {
     }
 
     /// Constructs a bingo board checker from the current board.
-    fn new_checker(&self) -> BoardChecker<R, C> {
+    fn new_checker(&self) -> BoardChecker<T, R, C> {
         BoardChecker {
             board: self,
             marks: [[false; C]; R],
@@ -125,12 +141,20 @@ impl<const R: usize, const C: usize> Board<R, C> {
 
     /// Constructs a bingo board from a vector of strings
     /// where each string represents a bingo row containing numbers separated by whitespaces.
-    fn from_lines(lines: Vec<String>) -> anyhow::Result<Self> {
-        let numbers: Vec<Vec<isize>> = lines
+    fn from_lines(lines: Vec<String>) -> anyhow::Result<Self>
+    where
+        T: Hash + FromStr,
+    {
+        let numbers: Vec<Vec<T>> = lines
             .into_iter()
             .map(|line| {
                 line.split_ascii_whitespace()
-                    .map(|token| Ok(token.trim().parse::<_>()?))
+                    .map(|token| {
+                        token
+                            .trim()
+                            .parse::<_>()
+                            .map_err(|_| anyhow!("cannot parse number: {}", token))
+                    })
                     .collect::<anyhow::Result<_>>()
             })
             .collect::<anyhow::Result<_>>()?;
@@ -138,10 +162,13 @@ impl<const R: usize, const C: usize> Board<R, C> {
     }
 }
 
-impl<const R: usize, const C: usize> TryFrom<Vec<Vec<isize>>> for Board<R, C> {
+impl<T, const R: usize, const C: usize> TryFrom<Vec<Vec<T>>> for Board<T, R, C>
+where
+    T: PrimInt + Hash,
+{
     type Error = anyhow::Error;
 
-    fn try_from(numbers: Vec<Vec<isize>>) -> Result<Self, Self::Error> {
+    fn try_from(numbers: Vec<Vec<T>>) -> Result<Self, Self::Error> {
         let board: [[_; C]; R] = numbers
             .into_iter()
             .map(|row| {
@@ -159,20 +186,29 @@ impl<const R: usize, const C: usize> TryFrom<Vec<Vec<isize>>> for Board<R, C> {
 
 /// A bingo board checker optimizes for bingo checking.
 #[derive(Debug, Clone)]
-struct BoardChecker<'a, const R: usize, const C: usize> {
+struct BoardChecker<'a, T, const R: usize, const C: usize>
+where
+    T: PrimInt,
+{
     /// The original bingo board.
-    board: &'a Board<R, C>,
+    board: &'a Board<T, R, C>,
     /// Records markings of which cells on the board have been called.
     marks: [[bool; C]; R],
     /// Tracks the final score. None if it has not reached the winning state just yet.
-    score: Option<isize>,
+    score: Option<T>,
 }
 
-impl<const R: usize, const C: usize> BoardChecker<'_, R, C> {
+impl<T, const R: usize, const C: usize> BoardChecker<'_, T, R, C>
+where
+    T: PrimInt + From<bool>,
+{
     /// Marks a called lot on the bingo board and finalizes the score
     /// if the board has achieved the winning state.
     /// Subsequent marks after initial winning mark may result in incorrect score.
-    fn mark(&mut self, call: isize) -> Option<isize> {
+    fn mark(&mut self, call: T) -> Option<T>
+    where
+        T: Hash + Sum,
+    {
         if self.score.is_none() {
             if let Some((i, j)) = self.board.mapper.get(&call).copied() {
                 self.marks[i][j] = true;
@@ -195,21 +231,24 @@ impl<const R: usize, const C: usize> BoardChecker<'_, R, C> {
     }
 
     /// Sum of unmarked numbers on the bingo board
-    fn sum_unmarked(&self) -> isize {
+    fn sum_unmarked(&self) -> T
+    where
+        T: Sum,
+    {
         iproduct!(0..R, 0..C)
-            .map(|(i, j)| self.board.numbers[i][j] * (!self.marks[i][j]) as isize)
+            .map(|(i, j)| self.board.numbers[i][j] * <T as From<bool>>::from(!self.marks[i][j]))
             .sum()
     }
 }
 
 /// Data representing the result from playing a bingo game.
 #[derive(Debug, Clone, Copy)]
-struct PlayResult {
+struct PlayResult<T> {
     /// Final Score of the bingo board. None if the board has reached the winning state.
-    score: Option<isize>,
+    score: Option<T>,
     /// Counts the number of called lots until the board reaches the winning state.
     /// If the winning state is not reached, it still stores the total number of lots called.
-    rounds: usize,
+    rounds_played: usize,
 }
 
 /// Collects strings from the iterator into a vector until a seemingly empty string

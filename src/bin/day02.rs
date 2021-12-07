@@ -12,40 +12,39 @@ fn main() {
     let input_reader = input_src.create_reader().expect("cannot open file");
     let input = parse_input(input_reader).expect("cannot parse input");
 
-    let p1_submarine =
-        input.iter().fold(
-            SubmarinePos::default(),
-            |SubmarinePos { x, y }, cmd| match cmd {
-                Command::Forward(dist) => SubmarinePos { x: x + dist, y },
-                Command::Down(dist) => SubmarinePos { x, y: y + dist },
-                Command::Up(dist) => SubmarinePos { x, y: y - dist },
-            },
-        );
-    println!("Part 1 answer: {}", p1_submarine.x * p1_submarine.y);
+    let p1_submarine = input
+        .iter()
+        .fold(Vector2D::default(), |Vector2D { x, y }, cmd| match cmd {
+            Command::Forward(dist) => Vector2D { x: x + dist, y },
+            Command::Down(dist) => Vector2D { x, y: y + dist },
+            Command::Up(dist) => Vector2D { x, y: y - dist },
+        });
+    println!("Part 1 answer: {}", p1_submarine.pos_product());
 
     let p2_submarine = input.iter().fold(
         SubmarineStatus::default(),
-        |SubmarineStatus { x, y, aim }, cmd| match cmd {
+        |SubmarineStatus { pos, aim }, cmd| match cmd {
             Command::Forward(dist) => SubmarineStatus {
-                x: x + dist,
-                y: y + aim * dist,
+                pos: Vector2D {
+                    x: pos.x + dist,
+                    y: pos.y + aim * dist,
+                },
                 aim,
             },
             Command::Down(dist) => SubmarineStatus {
-                x,
-                y,
+                pos,
                 aim: aim + dist,
             },
             Command::Up(dist) => SubmarineStatus {
-                x,
-                y,
+                pos,
                 aim: aim - dist,
             },
         },
     );
-    println!("Part 2 answer: {}", p2_submarine.x * p2_submarine.y);
+    println!("Part 2 answer: {}", p2_submarine.pos.pos_product());
 }
 
+/// Parses the submarine commands (program input) as a vector of [`Command`] struct.
 fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<Command>> {
     reader.lines().map(|line| line?.parse()).collect()
 }
@@ -53,9 +52,9 @@ fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<Command>> {
 /// Submarine navigation commands
 #[derive(Debug, Clone, Eq, PartialEq)]
 enum Command {
-    Forward(isize),
-    Down(isize),
-    Up(isize),
+    Forward(i64),
+    Down(i64),
+    Up(i64),
 }
 
 impl FromStr for Command {
@@ -73,23 +72,27 @@ impl FromStr for Command {
     }
 }
 
-/// Submarine positions
+/// Two-dimensional point.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
-struct SubmarinePos {
+struct Vector2D {
     /// x-coordinate
-    x: isize,
+    x: i64,
     /// y-coordinate
-    y: isize,
+    y: i64,
+}
+
+impl Vector2D {
+    /// The product of x- and y-coordinates.
+    fn pos_product(&self) -> i64 {
+        self.x * self.y
+    }
 }
 
 /// Submarine status: positions and aim
-/// TODO: embed [`SubmarinePos`] as sub-structure
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 struct SubmarineStatus {
-    /// x-coordinate
-    x: isize,
-    /// y-coordinate
-    y: isize,
-    /// aim propulsion attribute
-    aim: isize,
+    /// Position of the submarine
+    pos: Vector2D,
+    /// Aim propulsion attribute
+    aim: i64,
 }

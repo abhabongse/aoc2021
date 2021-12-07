@@ -1,5 +1,5 @@
-//! Day 2: Dive!, Advent of Code 2021
-//! https://adventofcode.com/2021/day/2
+//! Day 5: Hydrothermal Venture, Advent of Code 2021
+//! https://adventofcode.com/2021/day/5
 use std::io::BufRead;
 use std::str::FromStr;
 
@@ -33,11 +33,11 @@ fn main() {
         .map(|s| s.walk_integer_coords())
         .flatten()
         .counts();
-    let p2_answer = p2_point_covers
+    let p2_hot_points = p2_point_covers
         .iter()
         .filter_map(|(k, v)| (*v >= 2).then(|| k))
         .count();
-    println!("Part 2 answer: {}", p2_answer);
+    println!("Part 2 answer: {}", p2_hot_points);
 }
 
 fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<LineSegment>> {
@@ -48,15 +48,15 @@ fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<LineSegment>> {
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 struct LineSegment {
     /// One end point of the line segment.
-    p: Vector2<isize>,
+    p: Vector2<i64>,
     /// Another end point of the line segment.
-    q: Vector2<isize>,
+    q: Vector2<i64>,
 }
 
 impl LineSegment {
     /// Returns an iterator which produces a sequence of integer coordinates
     /// contained within the line segment from point `p` to `q`.
-    fn walk_integer_coords(&self) -> impl Iterator<Item = Vector2<isize>> + '_ {
+    fn walk_integer_coords(&self) -> impl Iterator<Item = Vector2<i64>> + '_ {
         let diff = self.q - self.p;
         let (dx, dy) = (diff.x, diff.y);
         let steps = num::integer::gcd(dx, dy);
