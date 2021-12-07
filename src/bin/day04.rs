@@ -98,9 +98,6 @@ impl Input {
 
 /// A bingo board with flexible sizes and element type,
 /// where `R` and `C` is the number of rows and columns of the board, respectively.
-/// TODO: make this board generic by declaring number implementing traits [`num::Integer`]
-///
-/// [`num::Integer`]: https://docs.rs/num/latest/num/trait.Integer.html
 #[derive(Debug, Clone)]
 struct Board<T, const R: usize, const C: usize>
 where

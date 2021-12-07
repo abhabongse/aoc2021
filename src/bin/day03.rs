@@ -122,11 +122,10 @@ fn compute_life_support_rating(numbers: &[BitVec]) -> anyhow::Result<u64> {
 /// Each round i, the remaining candidates compares i-th digit according to the tally criterion.
 /// Candidates matching the result of the tally criterion survives to the next round.
 ///
-/// # Implementation Note
-/// Previous implementation of this function avoided using [`itertools::Itertools::fold_while`]
-/// which is arguably a simpler implementation than this one.
-/// This implementation is kept as the latest version for no particular reason.
-/// TODO: switch back normal for loop
+/// Previous implementation of this function used [`itertools::Itertools::fold_while`],
+/// which could have been an elegant solution.
+/// However, with error handling plus short circuiting, the source code became too complex to understand,
+/// and it is unclear if there is a performance gain to be expected.
 ///
 /// [`itertools::Itertools::fold_while`]: https://docs.rs/itertools/0.10.3/itertools/trait.Itertools.html#method.fold_while
 fn eliminate_until_last<F>(numbers: &[BitVec], vote_criterion: F) -> anyhow::Result<&BitVec>
@@ -153,6 +152,7 @@ where
 /// Fetches the votes from all bit vectors by indexing into each bit vector,
 /// and determine the majority boolean result. Returns `true` in case of a tie.
 /// TODO: change signature into an iterator producing &BitVec instead
+///       (may need to look up on Higher-Rank Trait Bounds)
 fn cast_votes(numbers: &[&BitVec], index: usize) -> anyhow::Result<bool> {
     let tally: isize = numbers
         .iter()
