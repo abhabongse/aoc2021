@@ -4,6 +4,7 @@ use std::collections::{HashMap, VecDeque};
 use std::fmt::Debug;
 use std::io;
 use std::io::BufRead;
+use std::ops::Not;
 
 use anyhow::anyhow;
 use itertools::{iproduct, Itertools};
@@ -227,8 +228,5 @@ where
         collected.push(line);
     }
     // Checks for the remaining last few lines when iterator has been exhausted
-    match collected.as_slice() {
-        [] => None,
-        _ => Some(collected),
-    }
+    collected.is_empty().not().then(|| collected)
 }

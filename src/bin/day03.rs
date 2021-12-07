@@ -107,6 +107,13 @@ fn compute_life_support_rating(numbers: &[BitVec]) -> anyhow::Result<usize> {
 /// Performs multi-round elimination among all bit vectors until one survivor prevails.
 /// Each round i, the remaining candidates compares i-th digit according to the tally criterion.
 /// Candidates matching the result of the tally criterion survives to the next round.
+///
+/// # Implementation Note
+/// Previous implementation of this function avoided using [`itertools::Itertools::fold_while`]
+/// which is arguably a simpler implementation than this one.
+/// This implementation is kept as the latest version for no particular reason.
+///
+/// [`itertools::Itertools::fold_while`]: https://docs.rs/itertools/0.10.3/itertools/trait.Itertools.html#method.fold_while
 fn eliminate_until_last<F>(numbers: &[BitVec], vote_criterion: F) -> anyhow::Result<&BitVec>
 where
     F: Fn(&[&BitVec], usize) -> anyhow::Result<bool>,

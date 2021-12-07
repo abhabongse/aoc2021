@@ -16,15 +16,17 @@ fn main() {
     let input_reader = input_src.create_reader().expect("cannot open file");
     let input = parse_input(input_reader).expect("cannot parse input");
 
-    let axis_aligned_segments = input.iter().filter(|s| s.is_axis_aligned());
-    let p1_point_covers = axis_aligned_segments
+    let p1_point_covers = input
+        .iter()
+        .filter(|s| s.is_axis_aligned())
         .map(|s| s.walk_integer_coords())
         .flatten()
         .counts();
     let p1_hot_points = p1_point_covers
         .iter()
-        .filter_map(|(k, v)| (*v >= 2).then(|| k));
-    println!("Part 1 answer: {}", p1_hot_points.count());
+        .filter_map(|(k, v)| (*v >= 2).then(|| k))
+        .count();
+    println!("Part 1 answer: {}", p1_hot_points);
 
     let p2_point_covers = input
         .iter()
@@ -33,8 +35,9 @@ fn main() {
         .counts();
     let p2_answer = p2_point_covers
         .iter()
-        .filter_map(|(k, v)| (*v >= 2).then(|| k));
-    println!("Part 2 answer: {}", p2_answer.count());
+        .filter_map(|(k, v)| (*v >= 2).then(|| k))
+        .count();
+    println!("Part 2 answer: {}", p2_answer);
 }
 
 fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<LineSegment>> {
@@ -59,11 +62,7 @@ impl LineSegment {
         let steps = num::integer::gcd(dx, dy);
 
         std::iter::successors(Some(self.p), move |p| {
-            if *p == self.q {
-                None
-            } else {
-                Some(p + diff / steps)
-            }
+            (*p != self.q).then(|| p + diff / steps)
         })
     }
 
