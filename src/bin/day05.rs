@@ -14,10 +14,10 @@ use aoc2021::argparser;
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
     let input_reader = input_src.create_reader().expect("cannot open file");
-    let input = parse_input(input_reader).expect("cannot parse input");
+    let line_segments = parse_input(input_reader).expect("cannot parse input");
 
     // Part 1: axis-aligned line segments only
-    let p1_point_covers = input
+    let p1_point_covers = line_segments
         .iter()
         .filter(|s| s.is_axis_aligned())
         .map(|s| s.walk_integer_coords())
@@ -30,7 +30,7 @@ fn main() {
     println!("Part 1 answer: {}", p1_hot_points);
 
     // Part 2: all line segments considered
-    let p2_point_covers = input
+    let p2_point_covers = line_segments
         .iter()
         .map(|s| s.walk_integer_coords())
         .flatten()

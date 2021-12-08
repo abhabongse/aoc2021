@@ -18,16 +18,15 @@ use aoc2021::argparser;
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
     let input_reader = input_src.create_reader().expect("cannot open file");
-    let input = Input::from_buffer(input_reader).expect("cannot parse input");
+    let Input { boards, lots } = Input::from_buffer(input_reader).expect("cannot parse input");
 
     // Plays each bingo board with the pre-determined list of lots until reaching the winning state
     // and records the final result consisting of the score and the number of rounds played.
-    let play_results: Vec<_> = input
-        .boards
+    let play_results: Vec<_> = boards
         .iter()
         .map(|board| {
             let mut checker = board.new_checker();
-            for (i, lot) in input.lots.iter().copied().enumerate() {
+            for (i, lot) in lots.iter().copied().enumerate() {
                 let score = checker.mark(lot);
                 if score.is_some() {
                     return PlayResult {
@@ -38,7 +37,7 @@ fn main() {
             }
             PlayResult {
                 score: None,
-                rounds_played: input.lots.len(),
+                rounds_played: lots.len(),
             }
         })
         .collect();

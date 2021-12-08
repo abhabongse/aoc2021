@@ -12,15 +12,15 @@ use aoc2021::argparser;
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
     let input_reader = input_src.create_reader().expect("cannot open file");
-    let input = parse_input(input_reader).expect("cannot parse input");
+    let bit_vectors = parse_input(input_reader).expect("cannot parse input");
 
     // Part 1: power consumption computation
-    let p1_answer = compute_power_consumption(input.as_slice())
+    let p1_answer = compute_power_consumption(bit_vectors.as_slice())
         .expect("error while computing power consumption");
     println!("Part 1 answer: {}", p1_answer);
 
     // Part 2: life support rating computation
-    let p2_answer = compute_life_support_rating(input.as_slice())
+    let p2_answer = compute_life_support_rating(bit_vectors.as_slice())
         .expect("error while computing life support rating");
     println!("Part 2 answer: {}", p2_answer);
 }

@@ -10,20 +10,21 @@ use aoc2021::argparser;
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
     let input_reader = input_src.create_reader().expect("cannot open file");
-    let input = parse_input(input_reader).expect("cannot parse input");
+    let commands = parse_input(input_reader).expect("cannot parse input");
 
     // Part 1: naïve submarine navigation
-    let p1_submarine = input
-        .iter()
-        .fold(Vector2D::default(), |Vector2D { x, y }, cmd| match cmd {
-            Command::Forward(dist) => Vector2D { x: x + dist, y },
-            Command::Down(dist) => Vector2D { x, y: y + dist },
-            Command::Up(dist) => Vector2D { x, y: y - dist },
-        });
+    let p1_submarine =
+        commands
+            .iter()
+            .fold(Vector2D::default(), |Vector2D { x, y }, cmd| match cmd {
+                Command::Forward(dist) => Vector2D { x: x + dist, y },
+                Command::Down(dist) => Vector2D { x, y: y + dist },
+                Command::Up(dist) => Vector2D { x, y: y - dist },
+            });
     println!("Part 1 answer: {}", p1_submarine.pos_product());
 
     // Part 2: submarine navigation with aim attribute
-    let p2_submarine = input.iter().fold(
+    let p2_submarine = commands.iter().fold(
         SubmarineStatus::default(),
         |SubmarineStatus { pos, aim }, cmd| match cmd {
             Command::Forward(dist) => SubmarineStatus {

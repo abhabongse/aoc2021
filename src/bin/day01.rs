@@ -9,18 +9,18 @@ use aoc2021::argparser;
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
     let input_reader = input_src.create_reader().expect("cannot open file");
-    let input = parse_input(input_reader).expect("cannot parse input");
+    let depths = parse_input(input_reader).expect("cannot parse input");
 
-    // Part 1: one-day window increment counting
-    let p1_inc_count: usize = input
+    // Part 1: one-point window depth increment counting
+    let p1_inc_count: usize = depths
         .iter()
         .tuple_windows()
         .map(|(x, y)| (y > x) as usize)
         .sum();
     println!("Part 1 answer: {}", p1_inc_count);
 
-    // Part 2: three-day window increment counting
-    let p2_inc_count: usize = input
+    // Part 2: three-point window depth increment counting
+    let p2_inc_count: usize = depths
         .iter()
         .tuple_windows()
         .map(|(a, b, c)| a + b + c)
