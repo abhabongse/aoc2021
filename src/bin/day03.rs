@@ -14,10 +14,12 @@ fn main() {
     let input_reader = input_src.create_reader().expect("cannot open file");
     let input = parse_input(input_reader).expect("cannot parse input");
 
+    // Part 1: power consumption computation
     let p1_answer = compute_power_consumption(input.as_slice())
         .expect("error while computing power consumption");
     println!("Part 1 answer: {}", p1_answer);
 
+    // Part 2: life support rating computation
     let p2_answer = compute_life_support_rating(input.as_slice())
         .expect("error while computing life support rating");
     println!("Part 2 answer: {}", p2_answer);

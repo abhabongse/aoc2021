@@ -25,12 +25,12 @@ fn main() {
         1, 0, 0, 0, 0, 0, 0, 0, 0;
     ];
 
-    // Part 1: Count lanternfish after 80 days
+    // Part 1: fish counting after 80 days
     let p1_fish_counts = (0..80).fold(fish_counts, |v, _| next_day_trans * v);
     let p1_total = p1_fish_counts.dot(&vector![1, 1, 1, 1, 1, 1, 1, 1, 1]);
     println!("Part 1 answer: {}", p1_total);
 
-    // Part 1: Count lanternfish after 256 days
+    // Part 1: fish counting after 256 days
     // NOTE: could have used repeated squaring exponentiation method
     // if the number of days happens to be much larger
     let p2_fish_counts = (0..256).fold(fish_counts, |v, _| next_day_trans * v);

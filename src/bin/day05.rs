@@ -16,6 +16,7 @@ fn main() {
     let input_reader = input_src.create_reader().expect("cannot open file");
     let input = parse_input(input_reader).expect("cannot parse input");
 
+    // Part 1: axis-aligned line segments only
     let p1_point_covers = input
         .iter()
         .filter(|s| s.is_axis_aligned())
@@ -28,6 +29,7 @@ fn main() {
         .count();
     println!("Part 1 answer: {}", p1_hot_points);
 
+    // Part 2: all line segments considered
     let p2_point_covers = input
         .iter()
         .map(|s| s.walk_integer_coords())

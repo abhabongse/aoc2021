@@ -11,6 +11,7 @@ fn main() {
     let input_reader = input_src.create_reader().expect("cannot open file");
     let input = parse_input(input_reader).expect("cannot parse input");
 
+    // Part 1: one-day window increment counting
     let p1_inc_count: usize = input
         .iter()
         .tuple_windows()
@@ -18,6 +19,7 @@ fn main() {
         .sum();
     println!("Part 1 answer: {}", p1_inc_count);
 
+    // Part 2: three-day window increment counting
     let p2_inc_count: usize = input
         .iter()
         .tuple_windows()

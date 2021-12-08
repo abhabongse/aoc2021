@@ -43,6 +43,7 @@ fn main() {
         })
         .collect();
 
+    // Part 1: first bingo board to win
     let p1_answer = play_results
         .iter()
         .min_by_key(|result| result.rounds_played)
@@ -51,6 +52,7 @@ fn main() {
         .expect("unfinished board; score unavailable");
     println!("Part 1 answer: {}", p1_answer);
 
+    // Part 2: last bingo board to win
     let p2_answer = play_results
         .iter()
         .max_by_key(|result| result.rounds_played)

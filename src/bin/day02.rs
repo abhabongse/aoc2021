@@ -12,6 +12,7 @@ fn main() {
     let input_reader = input_src.create_reader().expect("cannot open file");
     let input = parse_input(input_reader).expect("cannot parse input");
 
+    // Part 1: naïve submarine navigation
     let p1_submarine = input
         .iter()
         .fold(Vector2D::default(), |Vector2D { x, y }, cmd| match cmd {
@@ -21,6 +22,7 @@ fn main() {
         });
     println!("Part 1 answer: {}", p1_submarine.pos_product());
 
+    // Part 2: submarine navigation with aim attribute
     let p2_submarine = input.iter().fold(
         SubmarineStatus::default(),
         |SubmarineStatus { pos, aim }, cmd| match cmd {
