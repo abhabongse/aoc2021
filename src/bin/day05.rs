@@ -6,7 +6,7 @@ use std::str::FromStr;
 use anyhow::anyhow;
 use itertools::Itertools;
 use lazy_static::lazy_static;
-use nalgebra::Vector2;
+use nalgebra::SVector;
 use regex::Regex;
 
 use aoc2021::argparser;
@@ -48,15 +48,15 @@ fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<LineSegment>> {
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 struct LineSegment {
     /// One end point of the line segment.
-    p: Vector2<i64>,
+    p: SVector<i64, 2>,
     /// Another end point of the line segment.
-    q: Vector2<i64>,
+    q: SVector<i64, 2>,
 }
 
 impl LineSegment {
     /// Returns an iterator which produces a sequence of integer coordinates
     /// contained within the line segment from point `p` to `q`.
-    fn walk_integer_coords(&self) -> impl Iterator<Item = Vector2<i64>> + '_ {
+    fn walk_integer_coords(&self) -> impl Iterator<Item = SVector<i64, 2>> + '_ {
         let diff = self.q - self.p;
         let (dx, dy) = (diff.x, diff.y);
         let steps = num::integer::gcd(dx, dy);
@@ -84,11 +84,11 @@ impl FromStr for LineSegment {
             .captures(s)
             .ok_or_else(|| anyhow!("invalid line segment input: {}", s))?;
         Ok(LineSegment {
-            p: Vector2::new(
+            p: SVector::<_, 2>::new(
                 captures.get(1).unwrap().as_str().parse()?,
                 captures.get(2).unwrap().as_str().parse()?,
             ),
-            q: Vector2::new(
+            q: SVector::<_, 2>::new(
                 captures.get(3).unwrap().as_str().parse()?,
                 captures.get(4).unwrap().as_str().parse()?,
             ),
