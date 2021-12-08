@@ -35,7 +35,7 @@ fn main() {
     println!("Part 1 answer: {}", p1_total);
 
     // Part 1: fish counting after 256 days
-    // NOTE: could have used repeated squaring exponentiation method
+    // NOTE: I could have used repeated squaring exponentiation method
     // if the number of days happens to be much larger
     let p2_fish_counts = (0..256).fold(init_counts, |v, _| next_day_trans * v);
     let p2_total = p2_fish_counts.dot(&vector![1, 1, 1, 1, 1, 1, 1, 1, 1]);
