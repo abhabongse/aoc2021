@@ -13,37 +13,17 @@ fn main() {
     let commands = parse_input(input_reader).expect("cannot parse input");
 
     // Part 1: naïve submarine navigation
-    let p1_submarine =
-        commands
-            .iter()
-            .fold(Vector2D::default(), |Vector2D { x, y }, cmd| match cmd {
-                Command::Forward(dist) => Vector2D { x: x + dist, y },
-                Command::Down(dist) => Vector2D { x, y: y + dist },
-                Command::Up(dist) => Vector2D { x, y: y - dist },
-            });
+    let p1_submarine = commands.iter().fold(Vector2D::default(), |pos, cmd| {
+        next_submarine_pos(&pos, cmd)
+    });
     println!("Part 1 answer: {}", p1_submarine.pos_product());
 
     // Part 2: submarine navigation with aim attribute
-    let p2_submarine = commands.iter().fold(
-        SubmarineStatus::default(),
-        |SubmarineStatus { pos, aim }, cmd| match cmd {
-            Command::Forward(dist) => SubmarineStatus {
-                pos: Vector2D {
-                    x: pos.x + dist,
-                    y: pos.y + aim * dist,
-                },
-                aim,
-            },
-            Command::Down(dist) => SubmarineStatus {
-                pos,
-                aim: aim + dist,
-            },
-            Command::Up(dist) => SubmarineStatus {
-                pos,
-                aim: aim - dist,
-            },
-        },
-    );
+    let p2_submarine = commands
+        .iter()
+        .fold(SubmarineStatus::default(), |status, cmd| {
+            next_submarine_status(&status, cmd)
+        });
     println!("Part 2 answer: {}", p2_submarine.pos.pos_product());
 }
 
@@ -98,4 +78,41 @@ struct SubmarineStatus {
     pos: Vector2D,
     /// Aim propulsion attribute
     aim: i64,
+}
+
+fn next_submarine_pos(pos: &Vector2D, cmd: &Command) -> Vector2D {
+    match cmd {
+        Command::Forward(dist) => Vector2D {
+            x: pos.x + dist,
+            y: pos.y,
+        },
+        Command::Down(dist) => Vector2D {
+            x: pos.x,
+            y: pos.y + dist,
+        },
+        Command::Up(dist) => Vector2D {
+            x: pos.x,
+            y: pos.y - dist,
+        },
+    }
+}
+
+fn next_submarine_status(status: &SubmarineStatus, cmd: &Command) -> SubmarineStatus {
+    match cmd {
+        Command::Forward(dist) => SubmarineStatus {
+            pos: Vector2D {
+                x: status.pos.x + dist,
+                y: status.pos.y + status.aim * dist,
+            },
+            aim: status.aim,
+        },
+        Command::Down(dist) => SubmarineStatus {
+            pos: status.pos,
+            aim: status.aim + dist,
+        },
+        Command::Up(dist) => SubmarineStatus {
+            pos: status.pos,
+            aim: status.aim - dist,
+        },
+    }
 }

@@ -31,7 +31,8 @@ fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<BitVec>> {
 }
 
 /// Bit vector wrapper.
-/// TODO: attempts to use [`bitvec::BitVec`] instead.
+/// TODO: Move this into library crate
+/// TODO: Use [`bitvec::BitVec`] from external crate instead
 ///
 /// [`bitvec::BitVec`]: https://docs.rs/bitvec/latest/bitvec/vec/struct.BitVec.html
 #[derive(Debug, Clone)]
@@ -153,8 +154,8 @@ where
 
 /// Fetches the votes from all bit vectors by indexing into each bit vector,
 /// and determine the majority boolean result. Returns `true` in case of a tie.
-/// TODO: change signature into an iterator producing &BitVec instead
-///       (may need to look up on Higher-Rank Trait Bounds)
+/// TODO: Change signature into an iterator producing &BitVec instead
+///       (may need to look up on Higher-Rank Trait Bounds to achieve this)
 fn cast_votes(numbers: &[&BitVec], index: usize) -> anyhow::Result<bool> {
     let tally: isize = numbers
         .iter()

@@ -3,6 +3,7 @@
 use std::io;
 use std::io::BufRead;
 
+use anyhow::anyhow;
 use nalgebra::{matrix, vector, SVector};
 
 use aoc2021::argparser;
@@ -12,12 +13,7 @@ fn main() {
     let input_reader = input_src.create_reader().expect("cannot open file");
     let fish_attrs = parse_input(input_reader).expect("cannot parse input");
 
-    // TODO: add error handling for item assignment of `init_counts[a]`
-    let init_counts = {
-        let mut init_counts: SVector<u64, 9> = SVector::zeros();
-        fish_attrs.iter().copied().for_each(|a| init_counts[a] += 1);
-        init_counts
-    };
+    let init_counts = count_fishes_by_attr(fish_attrs.as_slice()).expect("invalid fish attributes");
     let next_day_trans = matrix![
         0, 1, 0, 0, 0, 0, 0, 0, 0;
         0, 0, 1, 0, 0, 0, 0, 0, 0;
@@ -44,7 +40,7 @@ fn main() {
 }
 
 /// Parses the initial assignments of lanternfish in the sea.
-/// TODO: learn how to parse input in a more stream-friendly manner
+/// TODO: Learn how to parse input from buffer stream with proper short-circuit error handling
 fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<usize>> {
     reader
         .lines()
@@ -54,4 +50,22 @@ fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<usize>> {
         .flatten()
         .map(|token| Ok(token.trim().parse()?))
         .collect()
+}
+
+/// Counts the number of fishes by their attributes
+fn count_fishes_by_attr<const MAX_ATTR: usize>(
+    fish_attrs: &[usize],
+) -> anyhow::Result<SVector<u64, MAX_ATTR>> {
+    let mut init_counts: SVector<u64, MAX_ATTR> = SVector::zeros();
+    fish_attrs
+        .iter()
+        .copied()
+        .try_for_each(|attr| -> anyhow::Result<()> {
+            let attr_count = init_counts.get_mut(attr).ok_or_else(|| {
+                anyhow!("fish attribute {} exceed limit of {}", attr, MAX_ATTR - 1)
+            })?;
+            *attr_count += 1;
+            Ok(())
+        })?;
+    Ok(init_counts)
 }

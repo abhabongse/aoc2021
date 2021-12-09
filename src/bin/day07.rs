@@ -43,7 +43,7 @@ fn main() {
 }
 
 /// Parses the initial assignments of lanternfish in the sea.
-/// TODO: learn how to parse input in a more stream-friendly manner
+/// TODO: Learn how to parse input from buffer stream with proper short-circuit error handling
 fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<i64>> {
     reader
         .lines()

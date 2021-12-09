@@ -76,7 +76,7 @@ impl Input {
     /// An earlier version of this method short-circuits the error at the earliest convenience.
     /// However, this behavior was removed due to growing code complexity from such implementation.
     /// Perhaps, some lesson has been learned the hard way.
-    /// TODO: learn how to do this in a more stream-friendly manner
+    /// TODO: Learn how to parse input from buffer stream with proper short-circuit error handling
     fn from_buffer<R: BufRead>(reader: R) -> anyhow::Result<Self> {
         let lines: Vec<_> = reader.lines().collect::<Result<_, io::Error>>()?;
         let mut batches: VecDeque<_> = lines.into_iter().batching(collect_batch).collect();
@@ -124,7 +124,11 @@ where
         let mapper: HashMap<T, (usize, usize)> = numbers
             .into_iter()
             .enumerate()
-            .map(|(i, r)| r.into_iter().enumerate().map(move |(j, v)| (v, (i, j))))
+            .map(|(i, row)| {
+                row.into_iter()
+                    .enumerate()
+                    .map(move |(j, value)| (value, (i, j)))
+            })
             .flatten()
             .collect();
         Board { numbers, mapper }
@@ -152,7 +156,7 @@ where
                     .map(|token| {
                         token
                             .trim()
-                            .parse::<_>()
+                            .parse()
                             .map_err(|_| anyhow!("cannot parse number: {}", token))
                     })
                     .collect::<anyhow::Result<_>>()
