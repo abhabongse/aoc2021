@@ -14,6 +14,7 @@ use itertools::{iproduct, Itertools};
 use num::PrimInt;
 
 use aoc2021::argparser;
+use aoc2021::convert::TryCollectExt;
 
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
@@ -168,18 +169,14 @@ where
     type Error = anyhow::Error;
 
     fn try_from(numbers: Vec<Vec<T>>) -> Result<Self, Self::Error> {
-        let board: [[_; C]; R] = numbers
-            .into_iter()
-            .map(|row| {
-                let row: [_; C] = row.try_into().map_err(|v: Vec<_>| {
-                    anyhow!("found a board with {} columns instead of {}", v.len(), C)
-                })?;
-                Ok(row)
-            })
-            .collect::<anyhow::Result<Vec<[_; C]>>>()?
-            .try_into()
-            .map_err(|v: Vec<_>| anyhow!("found a board with {} rows instead of {}", v.len(), R))?;
-        Ok(Board::new(board))
+        Ok(Board::new(
+            numbers
+                .into_iter()
+                .map(|row| row.into_iter().try_collect_into::<[_; C]>())
+                .collect::<anyhow::Result<Vec<[_; C]>>>()?
+                .into_iter()
+                .try_collect_into::<[[_; C]; R]>()?,
+        ))
     }
 }
 

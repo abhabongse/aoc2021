@@ -12,6 +12,7 @@ fn main() {
     let input_reader = input_src.create_reader().expect("cannot open file");
     let fish_attrs = parse_input(input_reader).expect("cannot parse input");
 
+    // TODO: add error handling for item assignment of `init_counts[a]`
     let init_counts = {
         let mut init_counts: SVector<u64, 9> = SVector::zeros();
         fish_attrs.iter().copied().for_each(|a| init_counts[a] += 1);
