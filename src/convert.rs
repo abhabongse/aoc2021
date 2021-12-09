@@ -3,6 +3,9 @@ use anyhow::{anyhow, bail};
 /// Fallible conversion of an iterator producing item of type `A`
 /// into the implemented (targeted) type.
 /// TODO: convert this into trait extensions of [`std::convert::TryFrom`] instead
+/// TODO: incorporate a more proper error using [`thiserror`] crate.
+///
+/// [`thiserror`]: https://docs.rs/thiserror/latest/thiserror/
 pub trait TryFromIterator<A>: Sized {
     /// Attempts to convert an iterator into the targeted type.
     fn try_from_iter<I>(iter: I) -> Result<Self, anyhow::Error>
