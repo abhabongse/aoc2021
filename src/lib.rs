@@ -1,3 +1,3 @@
 pub mod argparser;
-pub mod iter;
+pub mod collections;
 pub mod vecmat;

@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 
 /// Trait extensions for [`Iterator`] type, adding a method
 /// to collect all items from an iterator into a constant-sized array.
-pub trait TryCollectArrayExt: Iterator {
+pub trait TryCollectArray: Iterator {
     fn try_collect_array<T, const SIZE: usize>(
         self,
         exact: bool,
@@ -15,7 +15,7 @@ pub trait TryCollectArrayExt: Iterator {
         for item in self.into_iter() {
             if buffer.len() >= SIZE {
                 if exact {
-                    return Err(TryCollectArrayError::TooManyItems { target: SIZE });
+                    return Err(TryCollectArrayError::TooManyItems { expect: SIZE });
                 } else {
                     break;
                 }
@@ -25,7 +25,7 @@ pub trait TryCollectArrayExt: Iterator {
         buffer
             .try_into()
             .map_err(|v: Vec<T>| TryCollectArrayError::TooFewItems {
-                target: SIZE,
+                expect: SIZE,
                 found: v.len(),
             })
     }
@@ -56,26 +56,30 @@ pub trait TryCollectArrayExt: Iterator {
     }
 }
 
-impl<T: ?Sized> TryCollectArrayExt for T where T: Iterator {}
+impl<T: ?Sized> TryCollectArray for T where T: Iterator {}
 
-/// Error type for trait [`TryCollectArrayExt`].
+/// Error type for trait [`TryCollectArray`] indicating that
+/// the number of items produced by the iterator does not match the expected.
 #[derive(Debug)]
 pub enum TryCollectArrayError {
-    /// Error indicating when the number of items produced by the iterator is less than the target.
-    TooFewItems { target: usize, found: usize },
-    /// Error indicating when the number of items produced by the iterator exceeds the target.
-    TooManyItems { target: usize },
+    /// Error indicating that the number of items produced by the iterator is less than the expected.
+    TooFewItems { expect: usize, found: usize },
+    /// Error indicating that the number of items produced by the iterator exceeds the expected.
+    TooManyItems { expect: usize },
 }
 
 impl Display for TryCollectArrayError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            TryCollectArrayError::TooFewItems { target, found } => write!(
+            TryCollectArrayError::TooFewItems {
+                expect: target,
+                found,
+            } => write!(
                 f,
                 "iterator produces too few items, found {} out of target {}",
                 found, target
             ),
-            TryCollectArrayError::TooManyItems { target } => write!(
+            TryCollectArrayError::TooManyItems { expect: target } => write!(
                 f,
                 "iterator produces too many items, exceeding target {}",
                 target
@@ -118,21 +122,21 @@ mod tests {
         assert_matches!(
             (0..5).try_collect_trunc_array::<i64, 6>(),
             Err(TryCollectArrayError::TooFewItems {
-                target: 6,
+                expect: 6,
                 found: 5
             })
         );
         assert_matches!(
             "xyz".chars().try_collect_trunc_array::<char, 7>(),
             Err(TryCollectArrayError::TooFewItems {
-                target: 7,
+                expect: 7,
                 found: 3
             })
         );
         assert_matches!(
             vec![].into_iter().try_collect_trunc_array::<usize, 8>(),
             Err(TryCollectArrayError::TooFewItems {
-                target: 8,
+                expect: 8,
                 found: 0
             })
         );
@@ -159,21 +163,21 @@ mod tests {
         assert_matches!(
             (0..5).try_collect_exact_array::<i64, 6>(),
             Err(TryCollectArrayError::TooFewItems {
-                target: 6,
+                expect: 6,
                 found: 5
             })
         );
         assert_matches!(
             "xyz".chars().try_collect_exact_array::<char, 7>(),
             Err(TryCollectArrayError::TooFewItems {
-                target: 7,
+                expect: 7,
                 found: 3
             })
         );
         assert_matches!(
             vec![].into_iter().try_collect_exact_array::<usize, 8>(),
             Err(TryCollectArrayError::TooFewItems {
-                target: 8,
+                expect: 8,
                 found: 0
             })
         );
@@ -183,19 +187,19 @@ mod tests {
     fn exact_too_many() {
         assert_matches!(
             std::iter::repeat(99).try_collect_exact_array::<i64, 8>(),
-            Err(TryCollectArrayError::TooManyItems { target: 8 })
+            Err(TryCollectArrayError::TooManyItems { expect: 8 })
         );
         assert_matches!(
             (0..1000).try_collect_exact_array::<i64, 0>(),
-            Err(TryCollectArrayError::TooManyItems { target: 0 })
+            Err(TryCollectArrayError::TooManyItems { expect: 0 })
         );
         assert_matches!(
             (0..5).try_collect_exact_array::<i64, 4>(),
-            Err(TryCollectArrayError::TooManyItems { target: 4 })
+            Err(TryCollectArrayError::TooManyItems { expect: 4 })
         );
         assert_matches!(
             "xyz".chars().try_collect_exact_array::<char, 1>(),
-            Err(TryCollectArrayError::TooManyItems { target: 1 })
+            Err(TryCollectArrayError::TooManyItems { expect: 1 })
         );
     }
 }
