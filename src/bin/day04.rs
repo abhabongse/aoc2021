@@ -14,7 +14,7 @@ use itertools::{iproduct, Itertools};
 use num::PrimInt;
 
 use aoc2021::argparser;
-use aoc2021::convert::TryCollectExt;
+use aoc2021::iter::TryCollectArrayExt;
 
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
@@ -172,10 +172,10 @@ where
         Ok(Board::new(
             numbers
                 .into_iter()
-                .map(|row| row.into_iter().try_collect_into::<[_; C]>())
+                .map(|row| Ok(row.into_iter().try_collect_exact_array::<_, C>()?))
                 .collect::<anyhow::Result<Vec<[_; C]>>>()?
                 .into_iter()
-                .try_collect_into::<[[_; C]; R]>()?,
+                .try_collect_exact_array::<_, R>()?,
         ))
     }
 }
