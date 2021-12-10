@@ -17,6 +17,12 @@ You may also add `--release` flag for a more optimized binary:
 $ cargo run --release --bin day01 inputs/day01.txt
 ```
 
+Shortcut command:
+
+```bash
+$ ./run inputs/day01.txt
+```
+
 ## Approaches and considerations
 
 1. My goal with Advent of Code 2021 is to dip my toe into Rust language and ecosystem, and to figure out how to transfer

@@ -45,9 +45,14 @@ fn main() {
         .map(|log| log.count_quickly_decodable_display_patterns())
         .sum();
     println!("Part 1 answer: {}", p1_answer);
-
-    // Part 2: TODO
-    let p2_answer = 0;
+    // Part 2: Decode four-digit displaying numbers and add them up
+    let p2_answer: u64 = display_logs
+        .iter()
+        .map(|log| log.decode_display_patterns())
+        .collect::<anyhow::Result<Vec<_>>>()
+        .expect("error occurred while decoding display patterns")
+        .into_iter()
+        .sum();
     println!("Part 2 answer: {}", p2_answer);
 }
 
@@ -103,6 +108,17 @@ impl DisplayLog {
             .copied()
             .filter(|p| self.can_quickly_decode(*p).unwrap_or(false))
             .count()
+    }
+
+    /// Decodes all digits of the display patterns into a four-digit number.
+    fn decode_display_patterns(&self) -> anyhow::Result<u64> {
+        self.display_patterns
+            .iter()
+            .copied()
+            .try_fold(0, |acc, pattern| {
+                Some(10 * acc + self.decode_pattern(pattern)?)
+            })
+            .ok_or(anyhow!("cannot decode output display patterns"))
     }
 }
 
