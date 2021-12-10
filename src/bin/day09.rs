@@ -18,6 +18,7 @@ fn main() {
     let p1_answer: i64 = iproduct!(0..rows, 0..cols)
         .filter_map(|pos| {
             orthogonal_neighbors(pos, (rows, cols))
+                .into_iter()
                 .all(|other_pos| heightmap[pos] < heightmap[other_pos])
                 .then(|| heightmap[pos] + 1)
         })
@@ -49,18 +50,20 @@ fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<DMatrix<i64>> {
     Ok(DMatrix::from_rows(elements.as_slice()))
 }
 
-/// An iterator which generates up to four positions orthogonally adjacent to the given `pos`
-/// bounded between `(0..rows, 0..cols)` where `(rows, cols) = clip_size`.
-fn orthogonal_neighbors(
-    pos: (usize, usize),
-    clip_size: (usize, usize),
-) -> Box<dyn Iterator<Item = (usize, usize)>> {
-    let iter = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+/// Obtains a list of up to four positions which are orthogonally adjacent to the given `pos`
+/// and are bounded within `(0..rows, 0..cols)` where `(rows, cols) == clip_size`.
+fn orthogonal_neighbors(pos: (usize, usize), clip_size: (usize, usize)) -> Vec<(usize, usize)> {
+    fn clipped_add(a: usize, b: i64, size: usize) -> Option<usize> {
+        let total = (a as i64) + b;
+        (0..size as i64).contains(&total).then(|| total as usize)
+    }
+    [(-1, 0), (1, 0), (0, -1), (0, 1)]
         .into_iter()
-        .map(move |(di, dj)| (pos.0 as i64 + di, pos.1 as i64 + dj))
-        .filter(move |(ni, nj)| {
-            (0..clip_size.0 as i64).contains(ni) && (0..clip_size.1 as i64).contains(nj)
+        .filter_map(|(di, dj)| {
+            Some((
+                clipped_add(pos.0, di, clip_size.0)?,
+                clipped_add(pos.1, dj, clip_size.1)?,
+            ))
         })
-        .map(move |(ni, nj)| (ni as usize, nj as usize));
-    Box::new(iter)
+        .collect()
 }
