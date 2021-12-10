@@ -1,5 +1,5 @@
 //! Day 3: Binary Diagnostic, Advent of Code 2021
-//! https://adventofcode.com/2021/day/3
+//! <https://adventofcode.com/2021/day/3>
 use std::fmt::{Display, Formatter};
 use std::io::BufRead;
 use std::ops::{Deref, Not};

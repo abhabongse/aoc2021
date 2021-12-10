@@ -1,5 +1,5 @@
 //! Day 2: Dive!, Advent of Code 2021
-//! https://adventofcode.com/2021/day/2
+//! <https://adventofcode.com/2021/day/2>
 use std::io::BufRead;
 use std::str::FromStr;
 

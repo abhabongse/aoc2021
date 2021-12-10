@@ -1,5 +1,5 @@
 //! Day 1: Sonar Sweep, Advent of Code 2021
-//! https://adventofcode.com/2021/day/1
+//! <https://adventofcode.com/2021/day/1>
 use std::io::BufRead;
 
 use anyhow::Context;

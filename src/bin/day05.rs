@@ -1,5 +1,5 @@
 //! Day 5: Hydrothermal Venture, Advent of Code 2021
-//! https://adventofcode.com/2021/day/5
+//! <https://adventofcode.com/2021/day/5>
 use std::io::BufRead;
 use std::str::FromStr;
 

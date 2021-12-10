@@ -1,5 +1,5 @@
 //! Day 7: The Treachery of Whales, Advent of Code 2021
-//! https://adventofcode.com/2021/day/7
+//! <https://adventofcode.com/2021/day/7>
 use std::io;
 use std::io::BufRead;
 

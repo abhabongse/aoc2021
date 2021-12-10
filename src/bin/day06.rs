@@ -1,5 +1,5 @@
 //! Day 6: Lanternfish, Advent of Code 2021
-//! https://adventofcode.com/2021/day/6
+//! <https://adventofcode.com/2021/day/6>
 use std::io;
 use std::io::BufRead;
 

@@ -1,5 +1,5 @@
 //! Day 4: Giant Squid, Advent of Code 2021
-//! https://adventofcode.com/2021/day/4
+//! <https://adventofcode.com/2021/day/4>
 use std::collections::{HashMap, VecDeque};
 use std::fmt::Debug;
 use std::hash::Hash;
