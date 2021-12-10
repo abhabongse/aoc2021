@@ -179,12 +179,12 @@ fn pattern_from_scribbles<T: AsRef<str>>(scribbles: T) -> anyhow::Result<u8> {
 /// Sorts the toggle patterns so that the `i`-th pattern precisely decodes to digit `i`.
 fn sort_toggle_patterns(patterns: &[u8; 10]) -> [u8; 10] {
     let one_decoder = DECODER_BY_NULL_ONE_FOUR[1].0;
-    let one_mask = pattern_by_xor_mask_tests(&patterns, [(0, one_decoder)].as_slice());
+    let one_mask = pattern_by_xor_mask_tests(patterns, [(0, one_decoder)].as_slice());
     let four_decoder = DECODER_BY_NULL_ONE_FOUR[4].0;
-    let four_mask = pattern_by_xor_mask_tests(&patterns, [(0, four_decoder)].as_slice());
+    let four_mask = pattern_by_xor_mask_tests(patterns, [(0, four_decoder)].as_slice());
     DECODER_BY_NULL_ONE_FOUR.map(|(null, one, four)| {
         let tests = [(0, null), (one_mask, one), (four_mask, four)];
-        pattern_by_xor_mask_tests(&patterns, tests.as_slice())
+        pattern_by_xor_mask_tests(patterns, tests.as_slice())
     })
 }
 
