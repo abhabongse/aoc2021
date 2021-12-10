@@ -79,21 +79,21 @@ impl FromStr for LineSegment {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         lazy_static! {
-            static ref RE: Regex =
-                Regex::new(r"\s*(-?\d+)\s*,\s*(-?\d+)\s*->\s*(-?\d+)\s*,\s*(-?\d+)\s*").unwrap();
+            static ref RE: Regex = Regex::new(
+                r"(?x)
+                    \s*(-?\d+)\s*,
+                    \s*(-?\d+)\s*->
+                    \s*(-?\d+)\s*,
+                    \s*(-?\d+)\s*"
+            )
+            .unwrap();
         }
         let captures = RE
             .captures(s)
             .ok_or_else(|| anyhow!("invalid line segment input: {}", s))?;
         Ok(LineSegment {
-            p: SVector::<_, 2>::new(
-                captures.get(1).unwrap().as_str().parse()?,
-                captures.get(2).unwrap().as_str().parse()?,
-            ),
-            q: SVector::<_, 2>::new(
-                captures.get(3).unwrap().as_str().parse()?,
-                captures.get(4).unwrap().as_str().parse()?,
-            ),
+            p: SVector::<_, 2>::new(captures[1].parse()?, captures[2].parse()?),
+            q: SVector::<_, 2>::new(captures[3].parse()?, captures[4].parse()?),
         })
     }
 }
