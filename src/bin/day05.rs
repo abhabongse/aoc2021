@@ -20,8 +20,7 @@ fn main() {
     let p1_point_covers = line_segments
         .iter()
         .filter(|s| s.is_axis_aligned())
-        .map(|s| s.walk_integer_coords())
-        .flatten()
+        .flat_map(|s| s.walk_integer_coords())
         .counts();
     let p1_hot_points = p1_point_covers
         .iter()
@@ -32,8 +31,7 @@ fn main() {
     // Part 2: all line segments considered
     let p2_point_covers = line_segments
         .iter()
-        .map(|s| s.walk_integer_coords())
-        .flatten()
+        .flat_map(|s| s.walk_integer_coords())
         .counts();
     let p2_hot_points = p2_point_covers
         .iter()

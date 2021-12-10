@@ -86,8 +86,7 @@ impl Input {
             .pop_front()
             .ok_or(anyhow!("missing lots data"))?
             .iter()
-            .map(|line| line.split(','))
-            .flatten()
+            .flat_map(|line| line.split(','))
             .map(|token| token.trim().quickparse())
             .collect::<anyhow::Result<_>>()?;
 
@@ -125,12 +124,11 @@ where
         let mapper: HashMap<T, (usize, usize)> = numbers
             .into_iter()
             .enumerate()
-            .map(|(i, row)| {
+            .flat_map(|(i, row)| {
                 row.into_iter()
                     .enumerate()
                     .map(move |(j, value)| (value, (i, j)))
             })
-            .flatten()
             .collect();
         Board { numbers, mapper }
     }

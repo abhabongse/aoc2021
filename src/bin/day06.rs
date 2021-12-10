@@ -47,8 +47,7 @@ fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<usize>> {
         .lines()
         .collect::<Result<Vec<_>, io::Error>>()?
         .iter()
-        .map(|line| line.split(','))
-        .flatten()
+        .flat_map(|line| line.split(','))
         .map(|token| token.trim().quickparse())
         .collect()
 }
