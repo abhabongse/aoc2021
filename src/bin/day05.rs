@@ -3,7 +3,7 @@
 use std::io::BufRead;
 use std::str::FromStr;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use nalgebra::SVector;
@@ -43,7 +43,10 @@ fn main() {
 }
 
 fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<LineSegment>> {
-    reader.lines().map(|line| line?.parse()).collect()
+    reader
+        .lines()
+        .map(|line| line.context("cannot read a line of string")?.parse())
+        .collect()
 }
 
 /// Two-dimensional Geometric line segment with integer end point coordinates.

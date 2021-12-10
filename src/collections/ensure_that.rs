@@ -1,55 +1,43 @@
-use std::error::Error;
-use std::fmt::{Display, Formatter};
+use anyhow::bail;
 
-/// Trait extensions that provides blanket implementation for every single type.
+/// Trait extension that provides blanket implementation of the method [`ensure_that`]
+/// for every single type.
+///
+/// [`ensure_that`]: EnsureThat::ensure_that
 pub trait EnsureThat {
-    /// Ensure that the object satisfies the given predicate.
-    /// It returns itself inside [`Ok` result] if the predicate check has passed,
-    /// otherwise it returns an error of type [`EnsureThatError`].
+    /// Ensures that the object satisfies the provided predicate.
+    /// It returns itself wrapped inside [`Ok` result] if the predicate is satisfied.
     ///
     /// [`Ok` result]: std::result::Result
-    fn ensure_that(self, predicate: impl FnOnce(&Self) -> bool) -> Result<Self, EnsureThatError>
+    fn ensure_that(self, predicate: impl FnOnce(&Self) -> bool) -> anyhow::Result<Self>
     where
         Self: Sized,
     {
         match predicate(&self) {
             true => Ok(self),
-            false => Err(EnsureThatError),
+            false => bail!("ensure predicate failed on the object"),
         }
     }
 }
 
 impl<T: ?Sized> EnsureThat for T {}
 
-/// Error type for trait [`EnsureThat`] indicating that an item failed the predicate check.
-#[derive(Debug)]
-pub struct EnsureThatError;
-
-impl Display for EnsureThatError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ensure on the object failed the predicate")
-    }
-}
-
-impl Error for EnsureThatError {}
-
 #[cfg(test)]
 mod tests {
-    use matches::assert_matches;
-
     use super::*;
 
     #[test]
     fn on_string() {
-        assert_matches!(
+        assert_eq!(
+            "Hello, World!".ensure_that(|s| s.len() > 3).unwrap(),
             "Hello, World!"
-                .ensure_that(|s| s.len() > 3)
-                .map_err(|e| e.to_string()),
-            Ok("Hello, World!")
         );
-        assert_matches!(
-            "Hello, World!".to_string().ensure_that(|s| s.len() < 3),
-            Err(EnsureThatError)
-        );
+        assert_eq!(
+            "Hello, World!"
+                .ensure_that(|s| s.len() < 3)
+                .unwrap_err()
+                .to_string(),
+            "ensure predicate failed on the object"
+        )
     }
 }

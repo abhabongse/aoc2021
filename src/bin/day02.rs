@@ -3,7 +3,7 @@
 use std::io::BufRead;
 use std::str::FromStr;
 
-use anyhow::bail;
+use anyhow::{bail, Context};
 
 use aoc2021::argparser;
 
@@ -29,7 +29,10 @@ fn main() {
 
 /// Parses the submarine commands (program input) as a vector of [`Command`] struct.
 fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<Command>> {
-    reader.lines().map(|line| line?.parse()).collect()
+    reader
+        .lines()
+        .map(|line| line.context("cannot read a line of string")?.parse())
+        .collect()
 }
 
 /// Submarine navigation commands
@@ -45,13 +48,14 @@ impl FromStr for Command {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let tokens: Vec<&str> = s.split_ascii_whitespace().collect();
-        match tokens[..] {
-            ["forward", param] => Ok(Command::Forward(param.parse()?)),
-            ["down", param] => Ok(Command::Down(param.parse()?)),
-            ["up", param] => Ok(Command::Up(param.parse()?)),
+        let cmd = match tokens[..] {
+            ["forward", param] => Command::Forward(param.parse()?),
+            ["down", param] => Command::Down(param.parse()?),
+            ["up", param] => Command::Up(param.parse()?),
             [] => bail!("empty command"),
             _ => bail!("invalid command: {}", s.trim()),
-        }
+        };
+        Ok(cmd)
     }
 }
 

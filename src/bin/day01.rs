@@ -2,9 +2,11 @@
 //! https://adventofcode.com/2021/day/1
 use std::io::BufRead;
 
+use anyhow::Context;
 use itertools::Itertools;
 
 use aoc2021::argparser;
+use aoc2021::quickparse::QuickParse;
 
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
@@ -34,6 +36,10 @@ fn main() {
 fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<i64>> {
     reader
         .lines()
-        .map(|line| Ok(line?.trim().parse()?))
+        .map(|line| {
+            line.context("cannot read a line of string")?
+                .trim()
+                .quickparse()
+        })
         .collect()
 }

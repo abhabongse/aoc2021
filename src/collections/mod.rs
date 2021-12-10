@@ -1,5 +1,5 @@
-pub use ensure_that::{EnsureThat, EnsureThatError};
-pub use try_collect_array::{TryCollectArray, TryCollectArrayError};
+pub use ensure_that::EnsureThat;
+pub use try_collect_array::TryCollectArray;
 
 mod ensure_that;
 mod try_collect_array;

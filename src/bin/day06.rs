@@ -7,6 +7,7 @@ use anyhow::anyhow;
 use nalgebra::{matrix, vector, SVector};
 
 use aoc2021::argparser;
+use aoc2021::quickparse::QuickParse;
 
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
@@ -48,7 +49,7 @@ fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<usize>> {
         .iter()
         .map(|line| line.split(','))
         .flatten()
-        .map(|token| Ok(token.trim().parse()?))
+        .map(|token| token.trim().quickparse())
         .collect()
 }
 

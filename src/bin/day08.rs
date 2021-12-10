@@ -3,7 +3,7 @@
 use std::io::BufRead;
 use std::str::FromStr;
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -58,7 +58,10 @@ fn main() {
 
 /// Parses the initial assignments of lanternfish in the sea.
 fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<DisplayLog>> {
-    reader.lines().map(|line| line?.parse()).collect()
+    reader
+        .lines()
+        .map(|line| line.context("cannot read a line of string")?.parse())
+        .collect()
 }
 
 /// `DisplayLog` consists of 10 signal patterns and 4 digit output patterns of a display.

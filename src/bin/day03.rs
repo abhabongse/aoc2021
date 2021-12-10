@@ -5,7 +5,7 @@ use std::io::BufRead;
 use std::ops::{Deref, Not};
 use std::str::FromStr;
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 
 use aoc2021::argparser;
 
@@ -27,7 +27,10 @@ fn main() {
 
 /// Parses the sequence of bit vectors as a vector of specialized struct.
 fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<BitVec>> {
-    reader.lines().map(|line| line?.parse()).collect()
+    reader
+        .lines()
+        .map(|line| line.context("cannot read a line of string")?.parse())
+        .collect()
 }
 
 /// Bit vector wrapper.

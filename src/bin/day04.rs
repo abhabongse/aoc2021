@@ -15,6 +15,7 @@ use num::PrimInt;
 
 use aoc2021::argparser;
 use aoc2021::collections::TryCollectArray;
+use aoc2021::quickparse::QuickParse;
 
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
@@ -87,7 +88,7 @@ impl Input {
             .iter()
             .map(|line| line.split(','))
             .flatten()
-            .map(|token| Ok(token.trim().parse()?))
+            .map(|token| token.trim().quickparse())
             .collect::<anyhow::Result<_>>()?;
 
         let boards: Vec<_> = batches
@@ -153,12 +154,7 @@ where
             .into_iter()
             .map(|line| {
                 line.split_ascii_whitespace()
-                    .map(|token| {
-                        token
-                            .trim()
-                            .parse()
-                            .map_err(|_| anyhow!("cannot parse number: {}", token))
-                    })
+                    .map(|token| token.trim().quickparse())
                     .collect::<anyhow::Result<_>>()
             })
             .collect::<anyhow::Result<_>>()?;
@@ -176,7 +172,7 @@ where
         Ok(Board::new(
             numbers
                 .into_iter()
-                .map(|row| Ok(row.into_iter().try_collect_exact_array::<_, C>()?))
+                .map(|row| row.into_iter().try_collect_exact_array::<_, C>())
                 .collect::<anyhow::Result<Vec<[_; C]>>>()?
                 .into_iter()
                 .try_collect_exact_array::<_, R>()?,

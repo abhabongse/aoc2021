@@ -4,6 +4,7 @@ use std::io;
 use std::io::BufRead;
 
 use aoc2021::argparser;
+use aoc2021::quickparse::QuickParse;
 
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
@@ -51,7 +52,7 @@ fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<i64>> {
         .iter()
         .map(|line| line.split(','))
         .flatten()
-        .map(|token| Ok(token.trim().parse()?))
+        .map(|token| token.trim().quickparse())
         .collect()
 }
 
