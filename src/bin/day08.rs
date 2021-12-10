@@ -1,5 +1,5 @@
 //! Day 8: Seven Segment Search, Advent of Code 2021
-//! https://adventofcode.com/2021/day/8
+//! <https://adventofcode.com/2021/day/8>
 use std::io::BufRead;
 use std::str::FromStr;
 
@@ -77,7 +77,7 @@ impl DisplayLog {
     /// Constructs a new [`DisplayLog`] but with `signal_patterns` properly sorted.
     fn new(digit_patterns: [u8; 10], display_patterns: [u8; 4]) -> Self {
         DisplayLog {
-            digit_patterns: sort_toggle_patterns(digit_patterns),
+            digit_patterns: sort_toggle_patterns(&digit_patterns),
             display_patterns,
         }
     }
@@ -177,14 +177,14 @@ fn pattern_from_scribbles<T: AsRef<str>>(scribbles: T) -> anyhow::Result<u8> {
 }
 
 /// Sorts the toggle patterns so that the `i`-th pattern precisely decodes to digit `i`.
-fn sort_toggle_patterns(patterns: [u8; 10]) -> [u8; 10] {
+fn sort_toggle_patterns(patterns: &[u8; 10]) -> [u8; 10] {
     let one_decoder = DECODER_BY_NULL_ONE_FOUR[1].0;
-    let one_mask = pattern_by_xor_mask_tests(patterns, [(0, one_decoder)].as_slice());
+    let one_mask = pattern_by_xor_mask_tests(&patterns, [(0, one_decoder)].as_slice());
     let four_decoder = DECODER_BY_NULL_ONE_FOUR[4].0;
-    let four_mask = pattern_by_xor_mask_tests(patterns, [(0, four_decoder)].as_slice());
+    let four_mask = pattern_by_xor_mask_tests(&patterns, [(0, four_decoder)].as_slice());
     DECODER_BY_NULL_ONE_FOUR.map(|(null, one, four)| {
         let tests = [(0, null), (one_mask, one), (four_mask, four)];
-        pattern_by_xor_mask_tests(patterns, tests.as_slice())
+        pattern_by_xor_mask_tests(&patterns, tests.as_slice())
     })
 }
 
@@ -194,14 +194,15 @@ fn sort_toggle_patterns(patterns: [u8; 10]) -> [u8; 10] {
 /// Each test consists of `(bit_mask, one_bits)`:
 /// -  `bit_mask`: XOR bit mask which must be applied to a toggle pattern in question first
 /// -  `one_bits`: expected number of one bits after masking the toggle pattern
-fn pattern_by_xor_mask_tests(patterns: [u8; 10], tests: &[(u8, u32)]) -> u8 {
+fn pattern_by_xor_mask_tests(patterns: &[u8; 10], tests: &[(u8, u32)]) -> u8 {
     patterns
         .iter()
         .copied()
-        .find(|n| {
+        .filter(|n| {
             tests
                 .iter()
                 .all(|test| (*n ^ test.0).count_ones() == test.1)
         })
-        .unwrap()
+        .exactly_one()
+        .expect("expected exactly one element here")
 }
