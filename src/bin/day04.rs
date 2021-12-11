@@ -26,22 +26,7 @@ fn main() {
     // and records the final result consisting of the score and the number of rounds played.
     let play_results: Vec<_> = boards
         .iter()
-        .map(|board| {
-            let mut checker = board.new_checker();
-            for (i, lot) in lots.iter().copied().enumerate() {
-                let score = checker.mark(lot);
-                if score.is_some() {
-                    return PlayResult {
-                        score,
-                        rounds_played: i,
-                    };
-                }
-            }
-            PlayResult {
-                score: None,
-                rounds_played: lots.len(),
-            }
-        })
+        .map(|board| board.play_with_lots(lots.as_slice()))
         .collect();
 
     // Part 1: first bingo board to win
@@ -133,15 +118,6 @@ where
         Board { numbers, mapper }
     }
 
-    /// Constructs a bingo board checker from the current board.
-    fn new_checker(&self) -> BoardChecker<T, R, C> {
-        BoardChecker {
-            board: self,
-            marks: [[false; C]; R],
-            score: None,
-        }
-    }
-
     /// Constructs a bingo board from a vector of strings
     /// where each string represents a bingo row containing numbers separated by whitespaces.
     fn from_lines(lines: Vec<String>) -> anyhow::Result<Self>
@@ -157,6 +133,37 @@ where
             })
             .collect::<anyhow::Result<_>>()?;
         Board::try_from(numbers)
+    }
+
+    /// Plays the bingo board from the beginning with the given sequences of lots,
+    /// and returns the final score and the number of rounds played.
+    fn play_with_lots(&self, lots: &[T]) -> PlayResult<T>
+    where
+        T: Hash + Sum,
+    {
+        let mut checker = self.new_checker();
+        for (i, lot) in lots.iter().copied().enumerate() {
+            let score = checker.mark(lot);
+            if score.is_some() {
+                return PlayResult {
+                    score,
+                    rounds_played: i,
+                };
+            }
+        }
+        PlayResult {
+            score: None,
+            rounds_played: lots.len(),
+        }
+    }
+
+    /// Constructs a bingo board checker from the current board.
+    fn new_checker(&self) -> BoardChecker<T, R, C> {
+        BoardChecker {
+            board: self,
+            marks: [[false; C]; R],
+            score: None,
+        }
     }
 }
 
@@ -194,7 +201,7 @@ where
 
 impl<T, const R: usize, const C: usize> BoardChecker<'_, T, R, C>
 where
-    T: PrimInt + From<bool>,
+    T: PrimInt,
 {
     /// Marks a called lot on the bingo board and finalizes the score
     /// if the board has achieved the winning state.
@@ -230,7 +237,7 @@ where
         T: Sum,
     {
         iproduct!(0..R, 0..C)
-            .map(|(i, j)| self.board.numbers[i][j] * <T as From<bool>>::from(!self.marks[i][j]))
+            .filter_map(|(i, j)| (!self.marks[i][j]).then(|| self.board.numbers[i][j]))
             .sum()
     }
 }

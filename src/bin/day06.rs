@@ -53,19 +53,20 @@ fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<usize>> {
 }
 
 /// Counts the number of fishes by their attributes
+///
+/// # Implementation Note
+/// I did not use [`Itertools::counts`] since I want to be able to detect out-of-bounds indexing.
+///
+/// [`Itertools::counts`]: https://docs.rs/itertools/0.10.3/itertools/trait.Itertools.html#method.counts
 fn count_fishes_by_attr<const MAX_ATTR: usize>(
     fish_attrs: &[usize],
 ) -> anyhow::Result<SVector<u64, MAX_ATTR>> {
     let mut init_counts: SVector<u64, MAX_ATTR> = SVector::zeros();
-    fish_attrs
-        .iter()
-        .copied()
-        .try_for_each(|attr| -> anyhow::Result<()> {
-            let attr_count = init_counts.get_mut(attr).ok_or_else(|| {
-                anyhow!("fish attribute {} exceed limit of {}", attr, MAX_ATTR - 1)
-            })?;
-            *attr_count += 1;
-            Ok(())
-        })?;
+    for attr in fish_attrs.iter().copied() {
+        let count = init_counts
+            .get_mut(attr)
+            .ok_or_else(|| anyhow!("fish attribute {} exceed limit of {}", attr, MAX_ATTR - 1))?;
+        *count += 1;
+    }
     Ok(init_counts)
 }
