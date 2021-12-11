@@ -20,7 +20,7 @@ use aoc2021::quickparse::QuickParse;
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
     let input_reader = input_src.create_reader().expect("cannot open file");
-    let Input { boards, lots } = Input::from_buffer(input_reader).expect("cannot parse input");
+    let Input { boards, lots } = parse_input(input_reader).expect("cannot parse input");
 
     // Plays each bingo board with the pre-determined list of lots until reaching the winning state
     // and records the final result consisting of the score and the number of rounds played.
@@ -48,40 +48,38 @@ fn main() {
     println!("Part 2 answer: {}", p2_answer);
 }
 
+/// Reads the input data from a buffer reader.
+///
+/// # Implementation Note
+/// An earlier version of this method short-circuits the error at the earliest convenience.
+/// However, this behavior was removed due to growing code complexity from such implementation.
+/// Perhaps, some lesson has been learned the hard way.
+/// TODO: Learn how to parse input from buffer stream with proper short-circuit error handling
+fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Input> {
+    let lines: Vec<_> = reader.lines().collect::<Result<_, io::Error>>()?;
+    let mut batches: VecDeque<_> = lines.into_iter().batching(collect_batch).collect();
+
+    let lots = batches
+        .pop_front()
+        .ok_or(anyhow!("missing lots data"))?
+        .iter()
+        .flat_map(|line| line.split(','))
+        .map(|token| token.trim().quickparse())
+        .collect::<anyhow::Result<_>>()?;
+
+    let boards: Vec<_> = batches
+        .into_iter()
+        .map(Board::from_lines)
+        .collect::<anyhow::Result<_>>()?;
+
+    Ok(Input { lots, boards })
+}
+
 /// Represents input data for the problem
 #[derive(Debug, Clone)]
 struct Input {
     lots: Vec<i64>,
     boards: Vec<Board<i64, 5, 5>>,
-}
-
-impl Input {
-    /// Reads the input data from a buffer reader.
-    ///
-    /// # Implementation Note
-    /// An earlier version of this method short-circuits the error at the earliest convenience.
-    /// However, this behavior was removed due to growing code complexity from such implementation.
-    /// Perhaps, some lesson has been learned the hard way.
-    /// TODO: Learn how to parse input from buffer stream with proper short-circuit error handling
-    fn from_buffer<R: BufRead>(reader: R) -> anyhow::Result<Self> {
-        let lines: Vec<_> = reader.lines().collect::<Result<_, io::Error>>()?;
-        let mut batches: VecDeque<_> = lines.into_iter().batching(collect_batch).collect();
-
-        let lots = batches
-            .pop_front()
-            .ok_or(anyhow!("missing lots data"))?
-            .iter()
-            .flat_map(|line| line.split(','))
-            .map(|token| token.trim().quickparse())
-            .collect::<anyhow::Result<_>>()?;
-
-        let boards: Vec<_> = batches
-            .into_iter()
-            .map(Board::from_lines)
-            .collect::<anyhow::Result<_>>()?;
-
-        Ok(Input { lots, boards })
-    }
 }
 
 /// A bingo board with flexible sizes and element type,
