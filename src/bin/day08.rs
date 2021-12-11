@@ -3,7 +3,7 @@
 use std::io::BufRead;
 use std::str::FromStr;
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{anyhow, bail, ensure, Context};
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -162,15 +162,13 @@ impl FromStr for DisplayLog {
 /// which is an 8-bit integer representation compatible with [`DisplayLog`].
 fn pattern_from_scribbles<T: AsRef<str>>(scribbles: T) -> anyhow::Result<u8> {
     let mut pattern = 0;
-    for c in scribbles.as_ref().bytes() {
+    for c in scribbles.as_ref().chars() {
         let pos = match c {
-            b'a'..=b'g' => c - b'a',
+            'a'..='g' => c as u32 - 'a' as u32,
             _ => bail!("invalid character: {}", c),
         };
         let mask = 1 << pos;
-        if (pattern & mask) != 0 {
-            bail!("duplicated character: {}", c);
-        }
+        ensure!((pattern & mask) == 0, "duplicated character: {}", c);
         pattern |= mask;
     }
     Ok(pattern)

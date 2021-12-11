@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, ensure};
 
 /// Trait extension for [`Iterator`] trait, adding the methods
 /// [`try_collect_exact_array`] and [`try_collect_trunc_array`]
@@ -14,14 +14,12 @@ pub trait TryCollectArray: Iterator {
         let mut collected: Vec<T> = Vec::with_capacity(SIZE);
         for item in self.into_iter() {
             if collected.len() >= SIZE {
-                if exact {
-                    bail!(
-                        "iterator produces too many items, exceeding target {}",
-                        SIZE
-                    );
-                } else {
-                    break;
-                }
+                ensure!(
+                    !exact,
+                    "iterator produces too many items, exceeding target {}",
+                    SIZE
+                );
+                break;
             }
             collected.push(item);
         }

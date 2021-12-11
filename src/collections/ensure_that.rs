@@ -1,4 +1,4 @@
-use anyhow::bail;
+use anyhow::ensure;
 
 /// Trait extension that provides blanket implementation of the method [`ensure_that`]
 /// for every single type.
@@ -13,10 +13,8 @@ pub trait EnsureThat {
     where
         Self: Sized,
     {
-        match predicate(&self) {
-            true => Ok(self),
-            false => bail!("ensure predicate failed on the object"),
-        }
+        ensure!(predicate(&self), "ensure predicate failed on the object");
+        Ok(self)
     }
 }
 

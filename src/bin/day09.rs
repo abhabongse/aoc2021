@@ -36,6 +36,7 @@ fn main() {
 }
 
 /// Parses two-dimensional heightmap of the seafloor.
+/// TODO: Adopt https://doc.rust-lang.org/std/primitive.char.html#method.to_digit
 fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<DMatrix<i64>> {
     let elements: Vec<_> = reader
         .lines()

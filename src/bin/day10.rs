@@ -55,7 +55,7 @@ fn main() {
     println!("Part 2 answer: {}", p2_answer);
 }
 
-/// Parses the report (program input) as a vector of integers.
+/// Parses the submarine subsystem source codes.
 fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<String>> {
     reader
         .lines()

@@ -5,7 +5,7 @@ use std::io::BufRead;
 use std::ops::{Deref, Not};
 use std::str::FromStr;
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{anyhow, Context};
 
 use aoc2021::argparser;
 
@@ -73,13 +73,14 @@ impl FromStr for BitVec {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // TODO: Adopt https://doc.rust-lang.org/std/primitive.char.html#method.to_digit
         let inner: Vec<_> = s
             .trim()
-            .bytes()
-            .map(|c| match c {
-                b'0' => Ok(false),
-                b'1' => Ok(true),
-                _ => bail!("invalid character in bit string: {}", c),
+            .chars()
+            .map(|c| {
+                c.to_digit(2)
+                    .map(|d| d != 0)
+                    .ok_or_else(|| anyhow!("invalid character in bit string: {}", c))
             })
             .collect::<anyhow::Result<_>>()?;
         Ok(BitVec(inner))
