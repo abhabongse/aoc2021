@@ -47,12 +47,7 @@ fn main() {
         .iter()
         .flat_map(|result| match result {
             SyntaxCheckResult::Corrupted(_) => None,
-            SyntaxCheckResult::AutoCompletion(s) => Some(s.chars().fold(0, |acc, c| {
-                let char_score = AUTOCOMPLETE_SCORE_BY_CHAR
-                    .get(&c)
-                    .expect("unknown character");
-                5 * acc + char_score
-            })),
+            SyntaxCheckResult::AutoCompletion(s) => Some(autocomplete_score(s)),
         })
         .collect();
     autocomplete_score.sort_unstable();
@@ -111,4 +106,14 @@ fn check_syntax<T: AsRef<str>>(s: T) -> SyntaxCheckResult {
         })
         .collect();
     SyntaxCheckResult::AutoCompletion(auto_completion)
+}
+
+/// Computes the autocomplete score for the given autocompletion string.
+fn autocomplete_score<T: AsRef<str>>(s: T) -> i64 {
+    s.as_ref().chars().fold(0, |acc, c| {
+        let char_score = AUTOCOMPLETE_SCORE_BY_CHAR
+            .get(&c)
+            .expect("unknown character");
+        5 * acc + char_score
+    })
 }
