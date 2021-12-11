@@ -56,7 +56,7 @@ fn main() {
     println!("Part 2 answer: {}", p2_answer);
 }
 
-/// Parses the initial assignments of lanternfish in the sea.
+/// Parses the seven-segment display logs.
 fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<DisplayLog>> {
     reader
         .lines()

@@ -28,7 +28,7 @@ fn main() {
     let p1_answer: i64 = low_points.iter().map(|pos| heightmap[*pos] + 1).sum();
     println!("Part 1 answer: {}", p1_answer);
 
-    // Part 2: Count the number of basins.
+    // Part 2: Find three largest basins.
     let basin_sizes = low_points.iter().map(|pos| basin_size(*pos, &heightmap));
     let top_basin_sizes = basin_sizes.map(Reverse).k_smallest(3).map(|s| s.0);
     let p2_answer: usize = top_basin_sizes.into_iter().product();
