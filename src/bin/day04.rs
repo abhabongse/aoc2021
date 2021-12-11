@@ -14,8 +14,8 @@ use itertools::{iproduct, Itertools};
 use num::PrimInt;
 
 use aoc2021::argparser;
-use aoc2021::collections::TryCollectArray;
 use aoc2021::quickparse::QuickParse;
+use aoc2021::try_collect::TryCollectArray;
 
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());

@@ -9,6 +9,7 @@ use itertools::{iproduct, Itertools};
 use nalgebra::{DMatrix, RowDVector};
 
 use aoc2021::argparser;
+use aoc2021::grid::orthogonal_neighbors;
 
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
@@ -37,6 +38,7 @@ fn main() {
 
 /// Parses two-dimensional heightmap of the seafloor.
 /// TODO: Adopt https://doc.rust-lang.org/std/primitive.char.html#method.to_digit
+/// TODO: Replaces [`nalgebra::Matrix`] with homegrown grid
 fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<DMatrix<i64>> {
     let elements: Vec<_> = reader
         .lines()
@@ -54,24 +56,6 @@ fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<DMatrix<i64>> {
         })
         .collect::<anyhow::Result<_>>()?;
     Ok(DMatrix::from_rows(elements.as_slice()))
-}
-
-/// Obtains a list of up to four positions which are orthogonally adjacent to the given `pos`
-/// and are bounded within `(0..rows, 0..cols)` where `(rows, cols) == shape`.
-fn orthogonal_neighbors(pos: (usize, usize), shape: (usize, usize)) -> Vec<(usize, usize)> {
-    fn clipped_add(a: usize, b: i64, size: usize) -> Option<usize> {
-        let total = (a as i64) + b;
-        (0..size as i64).contains(&total).then(|| total as usize)
-    }
-    [(-1, 0), (1, 0), (0, -1), (0, 1)]
-        .into_iter()
-        .filter_map(|(di, dj)| {
-            Some((
-                clipped_add(pos.0, di, shape.0)?,
-                clipped_add(pos.1, dj, shape.1)?,
-            ))
-        })
-        .collect()
 }
 
 /// Uses breadth-first search to find the basin

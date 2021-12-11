@@ -9,7 +9,7 @@ use lazy_static::lazy_static;
 use regex::Regex;
 
 use aoc2021::argparser;
-use aoc2021::collections::TryCollectArray;
+use aoc2021::try_collect::TryCollectArray;
 
 /// Hand-crafted information to decode toggle patterns into actual integer digits.
 /// In general, it performs an XOR-bitmask-then-count-one-bits test with each pattern.

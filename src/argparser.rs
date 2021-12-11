@@ -1,4 +1,4 @@
-use std::io::{self, BufRead, BufReader};
+use std::io::{self};
 use std::path::PathBuf;
 
 /// Represents an input source, which is either a standard input or a text file.
@@ -19,10 +19,10 @@ impl InputSrc {
     }
 
     /// Obtains a buffer reader from the input source.
-    pub fn create_reader(&self) -> anyhow::Result<Box<dyn BufRead>> {
+    pub fn create_reader(&self) -> anyhow::Result<Box<dyn io::BufRead>> {
         Ok(match self {
-            Self::Stdin => Box::new(BufReader::new(io::stdin())),
-            Self::File(name) => Box::new(BufReader::new(std::fs::File::open(name)?)),
+            Self::Stdin => Box::new(io::BufReader::new(io::stdin())),
+            Self::File(name) => Box::new(io::BufReader::new(std::fs::File::open(name)?)),
         })
     }
 }
