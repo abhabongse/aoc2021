@@ -42,7 +42,7 @@ fn main() {
     // Part 1: counting appearances of displaying digits with unique number of segments.
     let p1_answer: usize = display_logs
         .iter()
-        .map(|log| log.count_quickly_decodable_display_patterns())
+        .map(DisplayLog::count_quickly_decodable_display_patterns)
         .sum();
     println!("Part 1 answer: {}", p1_answer);
 
@@ -50,7 +50,7 @@ fn main() {
     let p2_answer: u64 = {
         let numbers: Vec<_> = display_logs
             .iter()
-            .map(|log| log.decode_display_patterns())
+            .map(DisplayLog::decode_display_patterns)
             .collect::<anyhow::Result<_>>()
             .expect("error occurred while decoding display patterns");
         numbers.into_iter().sum()

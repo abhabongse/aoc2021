@@ -172,14 +172,13 @@ where
     type Error = anyhow::Error;
 
     fn try_from(numbers: Vec<Vec<T>>) -> Result<Self, Self::Error> {
-        Ok(Board::new(
-            numbers
+        Ok(Board::new({
+            let rows: Vec<[_; C]> = numbers
                 .into_iter()
                 .map(|row| row.into_iter().try_collect_exact_array::<_, C>())
-                .collect::<anyhow::Result<Vec<[_; C]>>>()?
-                .into_iter()
-                .try_collect_exact_array::<_, R>()?,
-        ))
+                .collect::<anyhow::Result<Vec<[_; C]>>>()?;
+            rows.into_iter().try_collect_exact_array()?
+        }))
     }
 }
 

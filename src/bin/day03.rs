@@ -110,7 +110,7 @@ fn compute_power_consumption(numbers: &[BitVec]) -> anyhow::Result<u64> {
     let gamma: BitVec = (0..bit_length)
         .map(|index| cast_votes(numbers.iter().collect::<Vec<_>>().as_slice(), index))
         .collect::<anyhow::Result<_>>()?;
-    let epsilon: BitVec = gamma.iter().copied().map(|d| d.not()).collect();
+    let epsilon: BitVec = gamma.iter().copied().map(bool::not).collect();
     Ok(u64::from(&gamma) * u64::from(&epsilon))
 }
 
@@ -120,7 +120,7 @@ fn compute_power_consumption(numbers: &[BitVec]) -> anyhow::Result<u64> {
 fn compute_life_support_rating(numbers: &[BitVec]) -> anyhow::Result<u64> {
     let oxygen_generator_rating = eliminate_until_last(numbers, cast_votes)?;
     let co2_scrubber_rating = eliminate_until_last(numbers, |numbers, index| {
-        cast_votes(numbers, index).map(|d| d.not())
+        cast_votes(numbers, index).map(bool::not)
     })?;
     Ok(u64::from(oxygen_generator_rating) * u64::from(co2_scrubber_rating))
 }

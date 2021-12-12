@@ -48,9 +48,8 @@ fn main() {
 /// Parses the initial assignments of lanternfish in the sea.
 /// TODO: Learn how to parse input from buffer stream with proper short-circuit error handling
 fn parse_input<BR: BufRead>(reader: BR) -> anyhow::Result<Vec<usize>> {
-    reader
-        .lines()
-        .collect::<Result<Vec<_>, io::Error>>()?
+    let lines: Vec<_> = reader.lines().collect::<Result<_, io::Error>>()?;
+    lines
         .iter()
         .flat_map(|line| line.split(','))
         .map(|token| token.trim().quickparse())
