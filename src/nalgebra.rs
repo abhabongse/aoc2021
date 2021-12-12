@@ -1,3 +1,4 @@
+// TODO: Remove this module, stop using nalgebra, use homegrown grid
 use nalgebra::{Dim, Matrix, RawStorage};
 use num::Integer;
 

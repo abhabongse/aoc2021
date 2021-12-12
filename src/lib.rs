@@ -4,4 +4,3 @@ pub mod grid;
 pub mod nalgebra;
 pub mod quickparse;
 pub mod try_collect;
-pub mod vecmat;

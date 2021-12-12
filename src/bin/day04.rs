@@ -19,7 +19,7 @@ use aoc2021::try_collect::TryCollectArray;
 
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
-    let input_reader = input_src.create_reader().expect("cannot open file");
+    let input_reader = input_src.get_reader().expect("cannot open file");
     let Input { boards, lots } = parse_input(input_reader).expect("cannot parse input");
 
     // Plays each bingo board with the pre-determined list of lots until reaching the winning state
@@ -30,22 +30,22 @@ fn main() {
         .collect();
 
     // Part 1: first bingo board to win
-    let p1_answer = play_results
+    let p1_score_first_win = play_results
         .iter()
         .min_by_key(|result| result.rounds_played)
         .expect("no bingo boards read from the input")
         .score
         .expect("unfinished board; score unavailable");
-    println!("Part 1 answer: {}", p1_answer);
+    println!("Part 1 answer: {}", p1_score_first_win);
 
     // Part 2: last bingo board to win
-    let p2_answer = play_results
+    let p2_score_last_win = play_results
         .iter()
         .max_by_key(|result| result.rounds_played)
         .expect("no bingo boards read from the input")
         .score
         .expect("unfinished board; score unavailable");
-    println!("Part 2 answer: {}", p2_answer);
+    println!("Part 2 answer: {}", p2_score_last_win);
 }
 
 /// Reads the input data from a buffer reader.
@@ -55,7 +55,7 @@ fn main() {
 /// However, this behavior was removed due to growing code complexity from such implementation.
 /// Perhaps, some lesson has been learned the hard way.
 /// TODO: Learn how to parse input from buffer stream with proper short-circuit error handling
-fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Input> {
+fn parse_input<BR: BufRead>(reader: BR) -> anyhow::Result<Input> {
     let lines: Vec<_> = reader.lines().collect::<Result<_, io::Error>>()?;
     let mut batches: VecDeque<_> = lines.into_iter().batching(collect_batch).collect();
 

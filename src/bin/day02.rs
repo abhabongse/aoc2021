@@ -9,7 +9,7 @@ use aoc2021::argparser;
 
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
-    let input_reader = input_src.create_reader().expect("cannot open file");
+    let input_reader = input_src.get_reader().expect("cannot open file");
     let commands = parse_input(input_reader).expect("cannot parse input");
 
     // Part 1: naïve submarine navigation
@@ -28,7 +28,7 @@ fn main() {
 }
 
 /// Parses the submarine commands (program input) as a vector of [`Command`] struct.
-fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<Command>> {
+fn parse_input<BR: BufRead>(reader: BR) -> anyhow::Result<Vec<Command>> {
     reader
         .lines()
         .map(|line| line.context("cannot read a line of string")?.parse())

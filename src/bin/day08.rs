@@ -36,28 +36,30 @@ static DECODER_BY_NULL_ONE_FOUR: [(u32, u32, u32); 10] = [
 
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
-    let input_reader = input_src.create_reader().expect("cannot open file");
+    let input_reader = input_src.get_reader().expect("cannot open file");
     let display_logs = parse_input(input_reader).expect("cannot parse input");
 
-    // Part 1: Counting appearances of displaying digits with unique number of segments.
+    // Part 1: counting appearances of displaying digits with unique number of segments.
     let p1_answer: usize = display_logs
         .iter()
         .map(|log| log.count_quickly_decodable_display_patterns())
         .sum();
     println!("Part 1 answer: {}", p1_answer);
-    // Part 2: Decode four-digit displaying numbers and add them up
-    let p2_answer: u64 = display_logs
-        .iter()
-        .map(|log| log.decode_display_patterns())
-        .collect::<anyhow::Result<Vec<_>>>()
-        .expect("error occurred while decoding display patterns")
-        .into_iter()
-        .sum();
+
+    // Part 2: decoding four-digit displaying numbers and add them up
+    let p2_answer: u64 = {
+        let numbers: Vec<_> = display_logs
+            .iter()
+            .map(|log| log.decode_display_patterns())
+            .collect::<anyhow::Result<_>>()
+            .expect("error occurred while decoding display patterns");
+        numbers.into_iter().sum()
+    };
     println!("Part 2 answer: {}", p2_answer);
 }
 
 /// Parses the seven-segment display logs.
-fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<DisplayLog>> {
+fn parse_input<BR: BufRead>(reader: BR) -> anyhow::Result<Vec<DisplayLog>> {
     reader
         .lines()
         .map(|line| line.context("cannot read a line of string")?.parse())

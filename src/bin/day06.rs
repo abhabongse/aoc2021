@@ -4,6 +4,7 @@ use std::io;
 use std::io::BufRead;
 
 use anyhow::anyhow;
+// TODO: Stop using nalgebra, use homegrown grid
 use nalgebra::{matrix, vector, SVector};
 
 use aoc2021::argparser;
@@ -11,11 +12,11 @@ use aoc2021::quickparse::QuickParse;
 
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
-    let input_reader = input_src.create_reader().expect("cannot open file");
+    let input_reader = input_src.get_reader().expect("cannot open file");
     let fish_attrs = parse_input(input_reader).expect("cannot parse input");
 
     let init_counts = count_fishes_by_attr(fish_attrs.as_slice()).expect("invalid fish attributes");
-    let next_day_trans = matrix![
+    let trans_mat = matrix![
         0, 1, 0, 0, 0, 0, 0, 0, 0;
         0, 0, 1, 0, 0, 0, 0, 0, 0;
         0, 0, 0, 1, 0, 0, 0, 0, 0;
@@ -28,21 +29,25 @@ fn main() {
     ];
 
     // Part 1: fish counting after 80 days
-    let p1_fish_counts = (0..80).fold(init_counts, |v, _| next_day_trans * v);
-    let p1_total = p1_fish_counts.dot(&vector![1, 1, 1, 1, 1, 1, 1, 1, 1]);
-    println!("Part 1 answer: {}", p1_total);
+    let p1_total_fish = {
+        let fish_counts = (0..80).fold(init_counts, |v, _| trans_mat * v);
+        fish_counts.dot(&vector![1, 1, 1, 1, 1, 1, 1, 1, 1])
+    };
+    println!("Part 1 answer: {}", p1_total_fish);
 
-    // Part 1: fish counting after 256 days
-    // NOTE: I could have used repeated squaring exponentiation method
-    // if the number of days happens to be much larger
-    let p2_fish_counts = (0..256).fold(init_counts, |v, _| next_day_trans * v);
-    let p2_total = p2_fish_counts.dot(&vector![1, 1, 1, 1, 1, 1, 1, 1, 1]);
-    println!("Part 2 answer: {}", p2_total);
+    // Part 2: fish counting after 256 days
+    // NOTE: I could have used repeated squaring exponentiation method to reduce some time
+    // if the number of days happened to be much larger than this.
+    let p2_total_fish = {
+        let fish_counts = (0..256).fold(init_counts, |v, _| trans_mat * v);
+        fish_counts.dot(&vector![1, 1, 1, 1, 1, 1, 1, 1, 1])
+    };
+    println!("Part 2 answer: {}", p2_total_fish);
 }
 
 /// Parses the initial assignments of lanternfish in the sea.
 /// TODO: Learn how to parse input from buffer stream with proper short-circuit error handling
-fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<usize>> {
+fn parse_input<BR: BufRead>(reader: BR) -> anyhow::Result<Vec<usize>> {
     reader
         .lines()
         .collect::<Result<Vec<_>, io::Error>>()?

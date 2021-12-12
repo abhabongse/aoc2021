@@ -1,44 +1,19 @@
+//! Implements a blanket trait extension for [`Iterator`] trait which adds methods
+//! to collect items from an iterator into a constant-sized array.
 use anyhow::{anyhow, ensure};
 
-/// Trait extension for [`Iterator`] trait, adding the methods
-/// [`try_collect_exact_array`] and [`try_collect_trunc_array`]
-/// to collect items from an iterator into a constant-sized array.
-///
-/// [`try_collect_exact_array`]: TryCollectArray::try_collect_exact_array
-/// [`try_collect_trunc_array`]: TryCollectArray::try_collect_trunc_array
+/// Trait extension for [`Iterator`] trait which add two of the following methods
+/// to collect items from an iterator into a constant-sized array:
+/// -  [`try_collect_exact_array`](TryCollectArray::try_collect_exact_array)
+/// -  [`try_collect_trunc_array`](TryCollectArray::try_collect_trunc_array)
 pub trait TryCollectArray: Iterator {
-    fn try_collect_array<T, const SIZE: usize>(self, exact: bool) -> anyhow::Result<[T; SIZE]>
-    where
-        Self: Sized + IntoIterator<Item = T>,
-    {
-        let mut collected: Vec<T> = Vec::with_capacity(SIZE);
-        for item in self.into_iter() {
-            if collected.len() >= SIZE {
-                ensure!(
-                    !exact,
-                    "iterator produces too many items, exceeding target {}",
-                    SIZE
-                );
-                break;
-            }
-            collected.push(item);
-        }
-        collected.try_into().map_err(|v: Vec<T>| {
-            anyhow!(
-                "iterator produces too few items, found {} out of target {}",
-                v.len(),
-                SIZE
-            )
-        })
-    }
-
     /// Collects all items from the iterator into a constant-sized array.
     /// Too few or too many items produced will result in an error.
     fn try_collect_exact_array<T, const SIZE: usize>(self) -> anyhow::Result<[T; SIZE]>
     where
         Self: Sized + IntoIterator<Item = T>,
     {
-        self.try_collect_array(true)
+        try_collect_array(self, true)
     }
 
     /// Collects all items from the iterator into a constant-sized array.
@@ -49,8 +24,33 @@ pub trait TryCollectArray: Iterator {
     where
         Self: Sized + IntoIterator<Item = T>,
     {
-        self.try_collect_array(false)
+        try_collect_array(self, false)
     }
+}
+
+fn try_collect_array<T, I, const SIZE: usize>(it: I, exact: bool) -> anyhow::Result<[T; SIZE]>
+where
+    I: IntoIterator<Item = T>,
+{
+    let mut collected: Vec<T> = Vec::with_capacity(SIZE);
+    for item in it.into_iter() {
+        if collected.len() >= SIZE {
+            ensure!(
+                !exact,
+                "iterator produces too many items, exceeding target {}",
+                SIZE
+            );
+            break;
+        }
+        collected.push(item);
+    }
+    collected.try_into().map_err(|v: Vec<T>| {
+        anyhow!(
+            "iterator produces too few items, found {} out of target {}",
+            v.len(),
+            SIZE
+        )
+    })
 }
 
 impl<T: ?Sized> TryCollectArray for T where T: Iterator {}

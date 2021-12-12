@@ -10,7 +10,7 @@ use aoc2021::quickparse::QuickParse;
 
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
-    let input_reader = input_src.create_reader().expect("cannot open file");
+    let input_reader = input_src.get_reader().expect("cannot open file");
     let depths = parse_input(input_reader).expect("cannot parse input");
 
     // Part 1: one-point window depth increment counting
@@ -33,7 +33,7 @@ fn main() {
 }
 
 /// Parses the report (program input) as a vector of integers.
-fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<i64>> {
+fn parse_input<BR: BufRead>(reader: BR) -> anyhow::Result<Vec<i64>> {
     reader
         .lines()
         .map(|line| {

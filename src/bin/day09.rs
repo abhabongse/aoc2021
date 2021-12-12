@@ -4,8 +4,9 @@ use std::cmp::Reverse;
 use std::collections::{HashSet, VecDeque};
 use std::io::BufRead;
 
-use anyhow::{bail, Context};
+use anyhow::{anyhow, Context};
 use itertools::{iproduct, Itertools};
+// TODO: Stop using nalgebra, use homegrown grid
 use nalgebra::{DMatrix, RowDVector};
 
 use aoc2021::argparser;
@@ -13,9 +14,10 @@ use aoc2021::grid::orthogonal_neighbors;
 
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
-    let input_reader = input_src.create_reader().expect("cannot open file");
+    let input_reader = input_src.get_reader().expect("cannot open file");
     let heightmap = parse_input(input_reader).expect("cannot parse input");
 
+    // Find all low points in the heightmap
     let (rows, cols) = heightmap.shape();
     let low_points: Vec<_> = iproduct!(0..rows, 0..cols)
         .filter(|pos| {
@@ -25,31 +27,33 @@ fn main() {
         })
         .collect();
 
-    // Part 1: Sum or risk levels of the seafloor heightmap.
+    // Part 1: sum or risk levels of the seafloor heightmap
     let p1_answer: i64 = low_points.iter().map(|pos| heightmap[*pos] + 1).sum();
     println!("Part 1 answer: {}", p1_answer);
 
-    // Part 2: Find three largest basins.
-    let basin_sizes = low_points.iter().map(|pos| basin_size(*pos, &heightmap));
-    let top_basin_sizes = basin_sizes.map(Reverse).k_smallest(3).map(|s| s.0);
-    let p2_answer: usize = top_basin_sizes.into_iter().product();
+    // Part 2: find three largest basins
+    let p2_answer: usize = {
+        let basin_sizes = low_points.iter().map(|pos| basin_size(*pos, &heightmap));
+        let top_basin_sizes = basin_sizes.map(Reverse).k_smallest(3).map(|s| s.0);
+        top_basin_sizes.into_iter().product()
+    };
     println!("Part 2 answer: {}", p2_answer);
 }
 
 /// Parses two-dimensional heightmap of the seafloor.
 /// TODO: Adopt https://doc.rust-lang.org/std/primitive.char.html#method.to_digit
-/// TODO: Replaces [`nalgebra::Matrix`] with homegrown grid
-fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<DMatrix<i64>> {
+fn parse_input<BR: BufRead>(reader: BR) -> anyhow::Result<DMatrix<i64>> {
     let elements: Vec<_> = reader
         .lines()
         .map(|line| {
             let row_elements: Vec<_> = line
                 .context("cannot read a line of string from input buffer")?
                 .trim()
-                .bytes()
-                .map(|c| match c {
-                    b'0'..=b'9' => Ok(c as i64 - b'0' as i64),
-                    _ => bail!("invalid character in decimal string: {}", c),
+                .chars()
+                .map(|c| {
+                    c.to_digit(10)
+                        .map(|d| d as i64)
+                        .ok_or_else(|| anyhow!("invalid character in decimal string: {}", c))
                 })
                 .collect::<anyhow::Result<_>>()?;
             Ok(RowDVector::from_vec(row_elements))

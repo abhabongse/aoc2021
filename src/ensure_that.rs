@@ -1,7 +1,13 @@
+//! Provides a blanket implementation of method [`ensure_that`]
+//! which validates an item itself with a predicate,
+//! and returns itself wrapped inside [`Ok` result] if the predicate is satisfied.
+//!
+//! [`ensure_that`]: EnsureThat::ensure_that
 use anyhow::ensure;
 
-/// Trait extension that provides blanket implementation of the method [`ensure_that`]
-/// for every single type.
+/// Trait extension that provides blanket implementation of the of method [`ensure_that`]
+/// which validates an item itself with a predicate,
+/// and returns itself wrapped inside [`Ok` result] if the predicate is satisfied.
 ///
 /// [`ensure_that`]: EnsureThat::ensure_that
 pub trait EnsureThat {
@@ -13,7 +19,10 @@ pub trait EnsureThat {
     where
         Self: Sized,
     {
-        ensure!(predicate(&self), "ensure predicate failed on the object");
+        ensure!(
+            predicate(&self),
+            "the object failed to validate the provided predicate"
+        );
         Ok(self)
     }
 }
@@ -35,7 +44,16 @@ mod tests {
                 .ensure_that(|s| s.len() < 3)
                 .unwrap_err()
                 .to_string(),
-            "ensure predicate failed on the object"
+            "the object failed to validate the provided predicate"
         )
+    }
+
+    #[test]
+    fn on_integer() {
+        assert_eq!(3.ensure_that(|x| *x > 2).unwrap(), 3);
+        assert_eq!(
+            20.ensure_that(|x| *x < 2).unwrap_err().to_string(),
+            "the object failed to validate the provided predicate"
+        );
     }
 }

@@ -6,6 +6,7 @@ use std::str::FromStr;
 use anyhow::{anyhow, Context};
 use itertools::Itertools;
 use lazy_static::lazy_static;
+// TODO: Stop using nalgebra, use homegrown grid
 use nalgebra::SVector;
 use regex::Regex;
 
@@ -13,34 +14,38 @@ use aoc2021::argparser;
 
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
-    let input_reader = input_src.create_reader().expect("cannot open file");
+    let input_reader = input_src.get_reader().expect("cannot open file");
     let line_segments = parse_input(input_reader).expect("cannot parse input");
 
     // Part 1: axis-aligned line segments only
-    let p1_point_covers = line_segments
-        .iter()
-        .filter(|s| s.is_axis_aligned())
-        .flat_map(|s| s.walk_integer_coords())
-        .counts();
-    let p1_hot_points = p1_point_covers
-        .iter()
-        .filter_map(|(k, v)| (*v >= 2).then(|| k))
-        .count();
+    let p1_hot_points = {
+        let point_covers = line_segments
+            .iter()
+            .filter(|s| s.is_axis_aligned())
+            .flat_map(|s| s.walk_integer_coords())
+            .counts();
+        point_covers
+            .iter()
+            .filter_map(|(k, v)| (*v >= 2).then(|| k))
+            .count()
+    };
     println!("Part 1 answer: {}", p1_hot_points);
 
     // Part 2: all line segments considered
-    let p2_point_covers = line_segments
-        .iter()
-        .flat_map(|s| s.walk_integer_coords())
-        .counts();
-    let p2_hot_points = p2_point_covers
-        .iter()
-        .filter_map(|(k, v)| (*v >= 2).then(|| k))
-        .count();
+    let p2_hot_points = {
+        let point_covers = line_segments
+            .iter()
+            .flat_map(|s| s.walk_integer_coords())
+            .counts();
+        point_covers
+            .iter()
+            .filter_map(|(k, v)| (*v >= 2).then(|| k))
+            .count()
+    };
     println!("Part 2 answer: {}", p2_hot_points);
 }
 
-fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<LineSegment>> {
+fn parse_input<BR: BufRead>(reader: BR) -> anyhow::Result<Vec<LineSegment>> {
     reader
         .lines()
         .map(|line| line.context("cannot read a line of string")?.parse())

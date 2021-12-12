@@ -12,21 +12,21 @@ use aoc2021::grid::{king_step_neighbors, FixedGrid};
 
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
-    let mut input_reader = input_src.create_reader().expect("cannot open file");
-    let grid: FixedGrid<_, 10, 10> = parse_input(&mut input_reader).expect("cannot parse input");
+    let input_reader = input_src.get_reader().expect("cannot open file");
+    let grid: FixedGrid<_, 10, 10> = parse_input(input_reader).expect("cannot parse input");
 
     // Check the input grid
     let mut debug_writer = io::LineWriter::new(io::stderr());
     write_grid(&mut debug_writer, &grid);
 
-    // Part 1: Number of flashes after 100 steps.
+    // Part 1: number of flashes after 100 steps
     let p1_answer: usize = {
         let mut grid = grid.clone();
         (0..100).map(|_| update_grid(&mut grid)).sum()
     };
     println!("Part 1 answer: {}", p1_answer);
 
-    // Part 2: Number of step to get first simultaneous flashes.
+    // Part 2: number of steps to get first simultaneous flashes
     let p2_answer: usize = {
         let mut grid = grid;
         let result = (1..).try_for_each(|i| {
@@ -42,14 +42,12 @@ fn main() {
             ControlFlow::Break(attempts) => attempts,
         }
     };
-
-    // grid.clone();
     println!("Part 2 answer: {}", p2_answer);
 }
 
 /// Parses the energy level of octopuses in 10 by 10 grid.
 fn parse_input<BR: BufRead, const R: usize, const C: usize>(
-    reader: &mut BR,
+    reader: BR,
 ) -> anyhow::Result<FixedGrid<u8, R, C>> {
     let grid: Vec<_> = reader
         .lines()

@@ -25,38 +25,38 @@ lazy_static! {
 
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
-    let input_reader = input_src.create_reader().expect("cannot open file");
+    let input_reader = input_src.get_reader().expect("cannot open file");
     let lines = parse_input(input_reader).expect("cannot parse input");
 
     let check_results: Vec<_> = lines.iter().map(check_syntax).collect();
 
-    // Part 1: Corrupt error score.
-    let p1_answer: i64 = check_results
+    // Part 1: corrupt error score
+    let p1_score: i64 = check_results
         .iter()
-        .flat_map(|result| match result {
+        .filter_map(|result| match result {
             SyntaxCheckResult::AutoCompletion(_) => None,
-            SyntaxCheckResult::Corrupted(c) => {
-                Some(ERROR_SCORE_BY_CHAR.get(c).expect("unknown character"))
-            }
+            SyntaxCheckResult::Corrupted(c) => Some(corrupt_error_score(*c)),
         })
         .sum();
-    println!("Part 1 answer: {}", p1_answer);
+    println!("Part 1 answer: {}", p1_score);
 
-    // Part 2: Autocomplete score.
-    let mut autocomplete_score: Vec<_> = check_results
-        .iter()
-        .flat_map(|result| match result {
-            SyntaxCheckResult::Corrupted(_) => None,
-            SyntaxCheckResult::AutoCompletion(s) => Some(autocomplete_score(s)),
-        })
-        .collect();
-    autocomplete_score.sort_unstable();
-    let p2_answer = autocomplete_score[autocomplete_score.len() / 2];
-    println!("Part 2 answer: {}", p2_answer);
+    // Part 2: autocomplete score
+    let p2_score = {
+        let mut autocomplete_score: Vec<_> = check_results
+            .iter()
+            .filter_map(|result| match result {
+                SyntaxCheckResult::AutoCompletion(s) => Some(autocomplete_score(s)),
+                SyntaxCheckResult::Corrupted(_) => None,
+            })
+            .collect();
+        autocomplete_score.sort_unstable();
+        autocomplete_score[autocomplete_score.len() / 2]
+    };
+    println!("Part 2 answer: {}", p2_score);
 }
 
 /// Parses the submarine subsystem source codes.
-fn parse_input<R: BufRead>(reader: R) -> anyhow::Result<Vec<String>> {
+fn parse_input<BR: BufRead>(reader: BR) -> anyhow::Result<Vec<String>> {
     reader
         .lines()
         .map(|line| {
@@ -106,6 +106,11 @@ fn check_syntax<T: AsRef<str>>(s: T) -> SyntaxCheckResult {
         })
         .collect();
     SyntaxCheckResult::AutoCompletion(auto_completion)
+}
+
+/// Computes the corrupt error score for the given closing character.
+fn corrupt_error_score(c: char) -> i64 {
+    *ERROR_SCORE_BY_CHAR.get(&c).expect("unknown character")
 }
 
 /// Computes the autocomplete score for the given autocompletion string.
