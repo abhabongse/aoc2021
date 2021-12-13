@@ -35,7 +35,8 @@ fn main() {
         .fold(dots.into_iter().collect(), |dots, instr| {
             dots.into_iter().map(|dot| instr.fold_point(dot)).collect()
         });
-    let mut debug_writer = io::LineWriter::new(io::stderr());
+    let mut debug_writer = io::LineWriter::new(io::stdout());
+    println!("Part 2 answer: (see below)");
     write_dots(&mut debug_writer, &dots).expect("error while printing dots to stderr");
 }
 
@@ -45,7 +46,7 @@ fn parse_input<BR: BufRead>(reader: BR) -> anyhow::Result<Input> {
     let mut fold_instrs = Vec::new();
 
     let mut lines = reader.lines();
-    while let Some(line) = lines.next() {
+    for line in lines.by_ref() {
         let line = line.context("cannot read a line of string")?;
         if line.trim().is_empty() {
             break;
@@ -56,7 +57,7 @@ fn parse_input<BR: BufRead>(reader: BR) -> anyhow::Result<Input> {
             y: y.trim().quickparse()?,
         })
     }
-    while let Some(line) = lines.next() {
+    for line in lines.by_ref() {
         lazy_static! {
             static ref RE: Regex = Regex::new(r"\s*fold\s+along\s+([xy])=(\d+)\s*").unwrap();
         }
