@@ -1,5 +1,5 @@
-//! Day 11: Dumbo Octopus, Advent of Code 2021
-//! <https://adventofcode.com/2021/day/11>
+//! Day 12: Passage Pathing, Advent of Code 2021
+//! <https://adventofcode.com/2021/day/12>
 use std::collections::HashMap;
 use std::io::BufRead;
 
@@ -95,10 +95,10 @@ impl Graph {
     /// # Implementation Note
     /// I am not satisfied with my current optimizations
     /// to avoid duplicated allocations of identical string.
-    /// TODO: Ideally, I should figure out how to approach this.
-    ///       -  Possibility #1: using reference counting [`std::rc::Rc`]
-    ///       -  Possibility #2: Look up how to manage lifetimes within structs
-    ///          when one member contains a reference to the other member
+    /// - TODO: Ideally, I should figure out how to approach this.
+    ///     -  Possibility #1: using reference counting [`std::rc::Rc`]
+    ///     -  Possibility #2: Look up how to manage lifetimes within structs
+    ///        when one member contains a reference to the other member
     fn add_edge<T: AsRef<str>>(&mut self, u: T, v: T) {
         let u = u.as_ref().to_string();
         let v = v.as_ref().to_string();

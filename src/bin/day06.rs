@@ -46,7 +46,7 @@ fn main() {
 }
 
 /// Parses the initial assignments of lanternfish in the sea.
-/// TODO: Learn how to parse input from buffer stream with proper short-circuit error handling
+/// - TODO: Learn how to parse input from buffer stream with proper short-circuit error handling
 fn parse_input<BR: BufRead>(reader: BR) -> anyhow::Result<Vec<usize>> {
     let lines: Vec<_> = reader.lines().collect::<Result<_, io::Error>>()?;
     lines

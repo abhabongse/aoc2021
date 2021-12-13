@@ -17,7 +17,7 @@ fn main() {
 
     // Check the input grid
     let mut debug_writer = io::LineWriter::new(io::stderr());
-    write_grid(&mut debug_writer, &grid);
+    write_grid(&mut debug_writer, &grid).expect("error while printing a grid to stderr");
 
     // Part 1: number of flashes after 100 steps
     let p1_answer: usize = {
@@ -112,11 +112,11 @@ fn grid_just_all_flashed<const R: usize, const C: usize>(grid: &FixedGrid<u8, R,
 }
 
 /// Printing the grid as the debugging method.
-/// TODO: Learn proper logging best practices.
+/// - TODO: Learn proper logging best practices.
 fn write_grid<W: Write, const R: usize, const C: usize>(
     writer: &mut W,
     grid: &FixedGrid<u8, R, C>,
-) {
+) -> anyhow::Result<()> {
     for i in 0..R {
         let mut buffer: String = (0..C)
             .map(|j| char::from_digit(grid[(i, j)] as u32, 10).unwrap())
@@ -126,4 +126,5 @@ fn write_grid<W: Write, const R: usize, const C: usize>(
             .write_all(buffer.as_bytes())
             .expect("error while writing grid info");
     }
+    Ok(())
 }

@@ -54,7 +54,8 @@ fn main() {
 /// An earlier version of this method short-circuits the error at the earliest convenience.
 /// However, this behavior was removed due to growing code complexity from such implementation.
 /// Perhaps, some lesson has been learned the hard way.
-/// TODO: Learn how to parse input from buffer stream with proper short-circuit error handling
+/// - TODO: Learn how to parse input from buffer stream with proper short-circuit error handling
+/// - TODO: Try [`Iterator::peekable`] method.
 fn parse_input<BR: BufRead>(reader: BR) -> anyhow::Result<Input> {
     let lines: Vec<_> = reader.lines().collect::<Result<_, io::Error>>()?;
     let mut batches: VecDeque<_> = lines.into_iter().batching(collect_batch).collect();
