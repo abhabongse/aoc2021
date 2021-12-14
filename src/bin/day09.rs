@@ -1,10 +1,10 @@
-//! Day 9: Smoke Basin, Advent of Code 2021
+//! Day 9: Smoke Basin, Advent of Code 2021  
 //! <https://adventofcode.com/2021/day/9>
 use std::cmp::Reverse;
 use std::collections::{HashSet, VecDeque};
 use std::io::BufRead;
 
-use anyhow::{anyhow, Context};
+use anyhow::anyhow;
 use itertools::{iproduct, Itertools};
 // TODO: Stop using nalgebra, use homegrown grid
 use nalgebra::{DMatrix, RowDVector};
@@ -12,10 +12,11 @@ use nalgebra::{DMatrix, RowDVector};
 use aoc2021::argparser;
 use aoc2021::grid::orthogonal_neighbors;
 
+/// Main program
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
     let input_reader = input_src.get_reader().expect("cannot open file");
-    let heightmap = parse_input(input_reader).expect("cannot parse input");
+    let Input { heightmap } = Input::from_buffer(input_reader).expect("cannot parse input");
 
     // Find all low points in the heightmap
     let (rows, cols) = heightmap.shape();
@@ -27,11 +28,11 @@ fn main() {
         })
         .collect();
 
-    // Part 1: sum or risk levels of the seafloor heightmap
+    // Part 1: Sum or risk levels of the seafloor heightmap
     let p1_answer: i64 = low_points.iter().map(|pos| heightmap[*pos] + 1).sum();
     println!("Part 1 answer: {}", p1_answer);
 
-    // Part 2: find three largest basins
+    // Part 2: Find three largest basins
     let p2_answer: usize = {
         let basin_sizes = low_points.iter().map(|pos| basin_size(*pos, &heightmap));
         let top_basin_sizes = basin_sizes.map(Reverse).k_smallest(3).map(|s| s.0);
@@ -40,26 +41,31 @@ fn main() {
     println!("Part 2 answer: {}", p2_answer);
 }
 
-/// Parses two-dimensional heightmap of the seafloor.
-/// - TODO: Adopt <https://doc.rust-lang.org/std/primitive.char.html#method.to_digit>
-fn parse_input<BR: BufRead>(reader: BR) -> anyhow::Result<DMatrix<i64>> {
-    let elements: Vec<_> = reader
-        .lines()
-        .map(|line| {
-            let row_elements: Vec<_> = line
-                .context("cannot read a line of string from input buffer")?
-                .trim()
-                .chars()
-                .map(|c| {
-                    c.to_digit(10)
-                        .map(|d| d as i64)
-                        .ok_or_else(|| anyhow!("invalid character in decimal string: {}", c))
-                })
-                .collect::<anyhow::Result<_>>()?;
-            Ok(RowDVector::from_vec(row_elements))
-        })
-        .collect::<anyhow::Result<_>>()?;
-    Ok(DMatrix::from_rows(elements.as_slice()))
+/// Program input data
+#[derive(Debug, Clone)]
+struct Input {
+    /// Heightmap of the seafloor in two dimensions
+    heightmap: DMatrix<i64>,
+}
+
+impl Input {
+    /// Parses program input from buffered reader.
+    fn from_buffer(reader: impl BufRead) -> anyhow::Result<Self> {
+        let mut elements = Vec::new();
+        for line in reader.lines() {
+            let mut row_elements = Vec::new();
+            for c in line?.trim().chars() {
+                let d = c
+                    .to_digit(10)
+                    .ok_or_else(|| anyhow!("invalid character in decimal string: {}", c))?
+                    as i64;
+                row_elements.push(d)
+            }
+            elements.push(RowDVector::from_vec(row_elements));
+        }
+        let heightmap = DMatrix::from_rows(elements.as_slice());
+        Ok(Input { heightmap })
+    }
 }
 
 /// Uses breadth-first search to find the basin

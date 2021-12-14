@@ -1,14 +1,15 @@
-//! Day 8: Seven Segment Search, Advent of Code 2021
+//! Day 8: Seven Segment Search, Advent of Code 2021  
 //! <https://adventofcode.com/2021/day/8>
 use std::io::BufRead;
 use std::str::FromStr;
 
-use anyhow::{anyhow, bail, ensure, Context};
+use anyhow::{anyhow, bail, ensure};
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use regex::Regex;
 
 use aoc2021::argparser;
+use aoc2021::quickparse::QuickParse;
 use aoc2021::try_collect::TryCollectArray;
 
 /// Hand-crafted information to decode toggle patterns into actual integer digits.
@@ -34,19 +35,20 @@ static DECODER_BY_NULL_ONE_FOUR: [(u32, u32, u32); 10] = [
     (6, 4, 2),
 ];
 
+/// Main program
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
     let input_reader = input_src.get_reader().expect("cannot open file");
-    let display_logs = parse_input(input_reader).expect("cannot parse input");
+    let Input { display_logs } = Input::from_buffer(input_reader).expect("cannot parse input");
 
-    // Part 1: counting appearances of displaying digits with unique number of segments.
+    // Part 1: Counting appearances of displaying digits with unique number of segments
     let p1_answer: usize = display_logs
         .iter()
         .map(DisplayLog::count_quickly_decodable_display_patterns)
         .sum();
     println!("Part 1 answer: {}", p1_answer);
 
-    // Part 2: decoding four-digit displaying numbers and add them up
+    // Part 2: Decoding four-digit displaying numbers and add them up
     let p2_answer: u64 = {
         let numbers: Vec<_> = display_logs
             .iter()
@@ -58,12 +60,22 @@ fn main() {
     println!("Part 2 answer: {}", p2_answer);
 }
 
-/// Parses the seven-segment display logs.
-fn parse_input<BR: BufRead>(reader: BR) -> anyhow::Result<Vec<DisplayLog>> {
-    reader
-        .lines()
-        .map(|line| line.context("cannot read a line of string")?.parse())
-        .collect()
+/// Program input data
+#[derive(Debug, Clone)]
+struct Input {
+    /// Seven segment display logs
+    display_logs: Vec<DisplayLog>,
+}
+
+impl Input {
+    /// Parses program input from buffered reader.
+    fn from_buffer(reader: impl BufRead) -> anyhow::Result<Self> {
+        let mut display_logs = Vec::new();
+        for line in reader.lines() {
+            display_logs.push(line?.quickparse()?);
+        }
+        Ok(Input { display_logs })
+    }
 }
 
 /// `DisplayLog` consists of 10 signal patterns and 4 digit output patterns of a display.
@@ -93,10 +105,14 @@ impl DisplayLog {
             .map(|(pos, _)| pos as u64)
     }
 
-    /// Does the toggle `pattern` contains the number of one-bits
-    /// (i.e. the number of lit up segments in the seven-segment digit display)
-    /// which immediately uniquely identifies an integer digit (1, 4, 7, or 8).
+    /// Determines whether the toggle `pattern` contains 2, 3, 4, or 7 one-bits,
+    /// meaning that the number of lit up segments in the seven-segment digit display
+    /// can immediately uniquely identifies 1, 7, 4, or 8, respectively.
     /// An error returned by this function indicates an unrecognizable toggle pattern.
+    ///
+    /// # Implementation Note
+    /// The implementation of this function just straight out decodes any digits,
+    /// then just check whether it is one of 1, 4, 7, or 8 after the fact.
     fn can_quickly_decode(&self, pattern: u8) -> anyhow::Result<bool> {
         let digit = self
             .decode_pattern(pattern)
@@ -107,6 +123,7 @@ impl DisplayLog {
     /// Counts the number of toggle patterns within the output displays
     /// that can unique identify a digit solely on the number of one-bits
     /// (i.e. the number of lit up segments in the seven-segment digit display).
+    /// Returns an integer from 0 up to 4.
     fn count_quickly_decodable_display_patterns(&self) -> usize {
         self.display_patterns
             .iter()
