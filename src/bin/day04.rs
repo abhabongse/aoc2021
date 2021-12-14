@@ -1,15 +1,14 @@
-//! Day 4: Giant Squid, Advent of Code 2021
+//! Day 4: Giant Squid, Advent of Code 2021  
 //! <https://adventofcode.com/2021/day/4>
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::io;
 use std::io::BufRead;
 use std::iter::Sum;
-use std::ops::Not;
 use std::str::FromStr;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use itertools::{iproduct, Itertools};
 use num::PrimInt;
 
@@ -17,82 +16,105 @@ use aoc2021::argparser;
 use aoc2021::quickparse::QuickParse;
 use aoc2021::try_collect::TryCollectArray;
 
+/// Main program
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
     let input_reader = input_src.get_reader().expect("cannot open file");
-    let Input { boards, lots } = parse_input(input_reader).expect("cannot parse input");
+    let Input { boards, lots } = Input::from_buffer(input_reader).expect("cannot parse input");
 
-    // Plays each bingo board with the pre-determined list of lots until reaching the winning state
-    // and records the final result consisting of the score and the number of rounds played.
+    // Play each bingo board with the pre-determined sequence of lots until reaching the winning state
+    // and then record the final result consisting of the score and the number of rounds played.
+    if boards.is_empty() {
+        panic!("there is not even a single bingo board read from input");
+    }
     let play_results: Vec<_> = boards
         .iter()
         .map(|board| board.play_with_lots(lots.as_slice()))
         .collect();
 
-    // Part 1: first bingo board to win
-    let p1_score_first_win = play_results
-        .iter()
-        .min_by_key(|result| result.rounds_played)
-        .expect("no bingo boards read from the input")
-        .score
-        .expect("unfinished board; score unavailable");
-    println!("Part 1 answer: {}", p1_score_first_win);
+    // Part 1: First bingo board to win
+    let p1_first_win_score = {
+        let result = play_results.iter().min_by_key(|r| r.rounds_played).unwrap();
+        result.score.expect("unfinished board; score unavailable")
+    };
+    println!("Part 1 answer: {}", p1_first_win_score);
 
-    // Part 2: last bingo board to win
-    let p2_score_last_win = play_results
-        .iter()
-        .max_by_key(|result| result.rounds_played)
-        .expect("no bingo boards read from the input")
-        .score
-        .expect("unfinished board; score unavailable");
-    println!("Part 2 answer: {}", p2_score_last_win);
+    // Part 2: Last bingo board to win
+    let p2_last_win_score = {
+        let result = play_results.iter().max_by_key(|r| r.rounds_played).unwrap();
+        result.score.expect("unfinished board; score unavailable")
+    };
+    println!("Part 2 answer: {}", p2_last_win_score);
 }
 
-/// Reads the input data from a buffer reader.
-///
-/// # Implementation Note
-/// An earlier version of this method short-circuits the error at the earliest convenience.
-/// However, this behavior was removed due to growing code complexity from such implementation.
-/// Perhaps, some lesson has been learned the hard way.
-/// - TODO: Learn how to parse input from buffer stream with proper short-circuit error handling
-/// - TODO: Try [`Iterator::peekable`] method.
-fn parse_input<BR: BufRead>(reader: BR) -> anyhow::Result<Input> {
-    let lines: Vec<_> = reader.lines().collect::<Result<_, io::Error>>()?;
-    let mut batches: VecDeque<_> = lines.into_iter().batching(collect_batch).collect();
-
-    let lots = batches
-        .pop_front()
-        .ok_or(anyhow!("missing lots data"))?
-        .iter()
-        .flat_map(|line| line.split(','))
-        .map(|token| token.trim().quickparse())
-        .collect::<anyhow::Result<_>>()?;
-
-    let boards: Vec<_> = batches
-        .into_iter()
-        .map(Board::from_lines)
-        .collect::<anyhow::Result<_>>()?;
-
-    Ok(Input { lots, boards })
-}
-
-/// Represents input data for the problem
+/// Program input data
 #[derive(Debug, Clone)]
 struct Input {
+    /// Sequence of drawn lots
     lots: Vec<i64>,
+    /// Collection of bingo boards
     boards: Vec<Board<i64, 5, 5>>,
 }
 
-/// A bingo board with flexible sizes and element type,
-/// where `R` and `C` is the number of rows and columns of the board, respectively.
+impl Input {
+    /// Parses program input from buffered reader.
+    fn from_buffer(reader: impl BufRead) -> anyhow::Result<Self> {
+        let mut batches = reader.lines().batching(collect_line_batch);
+
+        let mut lots = Vec::new();
+        let batch = batches.next().context("missing lots data")??;
+        for line in batch {
+            for token in line.split(',') {
+                lots.push(token.trim().quickparse()?);
+            }
+        }
+
+        let mut boards = Vec::new();
+        for batch in batches {
+            boards.push(Board::from_lines(batch?)?);
+        }
+
+        Ok(Input { lots, boards })
+    }
+}
+
+/// Collects strings from an iterator into a vector until a seemingly empty string
+/// (which includes strings containing just whitespaces) has been found.
+/// Empty strings will not be included as part of the returned vector.
+/// If the iterator has already been exhausted in the first place, `None` is returned.
+fn collect_line_batch<I>(it: &mut I) -> Option<anyhow::Result<Vec<String>>>
+where
+    I: Iterator<Item = Result<String, io::Error>>,
+{
+    let mut buffer = Vec::new();
+    for line in it {
+        match line {
+            Ok(s) if s.trim().is_empty() => return Some(Ok(buffer)),
+            Ok(s) => buffer.push(s),
+            Err(_) => {
+                return Some(Err(anyhow!(
+                    "error while reading a line of string from input"
+                )))
+            }
+        }
+    }
+    if buffer.is_empty() {
+        None
+    } else {
+        Some(Ok(buffer))
+    }
+}
+
+/// Bingo board with compile-time constant size and flexible element type.
+/// Parameters `R` and `C` are the number of rows and columns, respectively.
 #[derive(Debug, Clone)]
 struct Board<T, const R: usize, const C: usize>
 where
     T: PrimInt,
 {
-    /// Grid numbers of the bingo board.
+    /// Number grid of the bingo board
     numbers: [[T; C]; R],
-    /// Auxiliary data mapping from a number to the indexing position on the bingo board.
+    /// Auxiliary mapping data structure from a bingo number to the indexing positio on the bingo board
     mapper: HashMap<T, (usize, usize)>,
 }
 
@@ -101,6 +123,7 @@ where
     T: PrimInt,
 {
     /// Constructs a bingo board from 2-d array grid of numbers.
+    /// Member `mapper` will be constructed on-the-fly.
     fn new(numbers: [[T; C]; R]) -> Self
     where
         T: Hash,
@@ -123,24 +146,24 @@ where
     where
         T: Hash + FromStr,
     {
-        let numbers: Vec<Vec<T>> = lines
-            .into_iter()
-            .map(|line| {
-                line.split_ascii_whitespace()
-                    .map(|token| token.trim().quickparse())
-                    .collect::<anyhow::Result<_>>()
-            })
-            .collect::<anyhow::Result<_>>()?;
-        Board::try_from(numbers)
+        let mut board_numbers = Vec::new();
+        for line in lines {
+            let mut row_numbers = Vec::new();
+            for token in line.split_ascii_whitespace() {
+                row_numbers.push(token.trim().quickparse()?);
+            }
+            board_numbers.push(row_numbers);
+        }
+        Board::try_from(board_numbers)
     }
 
-    /// Plays the bingo board from the beginning with the given sequences of lots,
+    /// Plays the bingo board from the beginning with the given sequence of lots,
     /// and returns the final score and the number of rounds played.
     fn play_with_lots(&self, lots: &[T]) -> PlayResult<T>
     where
         T: Hash + Sum,
     {
-        let mut checker = self.new_checker();
+        let mut checker = self.spawn_checker();
         for (i, lot) in lots.iter().copied().enumerate() {
             let score = checker.mark(lot);
             if score.is_some() {
@@ -156,8 +179,8 @@ where
         }
     }
 
-    /// Constructs a bingo board checker from the current board.
-    fn new_checker(&self) -> BoardChecker<T, R, C> {
+    /// Spawns a new bingo board checker of the current board.
+    fn spawn_checker(&self) -> BoardChecker<T, R, C> {
         BoardChecker {
             board: self,
             marks: [[false; C]; R],
@@ -183,17 +206,17 @@ where
     }
 }
 
-/// A bingo board checker optimizes for bingo checking.
+/// Bingo board checker which optimizes for bingo checking
 #[derive(Debug, Clone)]
 struct BoardChecker<'a, T, const R: usize, const C: usize>
 where
     T: PrimInt,
 {
-    /// The original bingo board.
+    /// Reference to the original bingo board
     board: &'a Board<T, R, C>,
-    /// Records markings of which cells on the board have been called.
+    /// Record markings of which cell positions on the board have been called.
     marks: [[bool; C]; R],
-    /// Tracks the final score. None if it has not reached the winning state just yet.
+    /// Tracks the final score. `None` if it has not reached the winning state just yet.
     score: Option<T>,
 }
 
@@ -201,9 +224,8 @@ impl<T, const R: usize, const C: usize> BoardChecker<'_, T, R, C>
 where
     T: PrimInt,
 {
-    /// Marks a called lot on the bingo board and finalizes the score
-    /// if the board has achieved the winning state.
-    /// Subsequent marks after initial winning mark may result in incorrect score.
+    /// Marks a called lot on the bingo board and finalizes the score if winning state has been reached.
+    /// Subsequent marks after the first winning does not alter the bingo board markings.
     fn mark(&mut self, call: T) -> Option<T>
     where
         T: Hash + Sum,
@@ -219,52 +241,34 @@ where
         self.score
     }
 
-    /// Checks whether a given row has achieved the winning state
+    /// Checks whether a given row has achieved the winning state.
     fn check_row_winning(&self, row: usize) -> bool {
-        (0..C).map(|j| self.marks[row][j]).all(|x| x)
+        (0..C).all(|j| self.marks[row][j])
     }
 
-    /// Checks whether a given column has achieved the winning state
+    /// Checks whether a given column has achieved the winning state.
     fn check_col_winning(&self, col: usize) -> bool {
-        (0..R).map(|i| self.marks[i][col]).all(|x| x)
+        (0..R).all(|i| self.marks[i][col])
     }
 
-    /// Sum of unmarked numbers on the bingo board
+    /// Computes the sum of unmarked numbers on the bingo board.
     fn sum_unmarked(&self) -> T
     where
         T: Sum,
     {
         iproduct!(0..R, 0..C)
-            .filter_map(|(i, j)| (!self.marks[i][j]).then(|| self.board.numbers[i][j]))
+            .filter(|(i, j)| !self.marks[*i][*j])
+            .map(|(i, j)| self.board.numbers[i][j])
             .sum()
     }
 }
 
-/// Data representing the result from playing a bingo game.
+/// The result from playing a bingo game with a sequence of lots
 #[derive(Debug, Clone, Copy)]
 struct PlayResult<T> {
-    /// Final Score of the bingo board. None if the board has reached the winning state.
+    /// Final score of the bingo board; `None` if the board has reached the winning state
     score: Option<T>,
-    /// Counts the number of called lots until the board reaches the winning state.
-    /// If the winning state is not reached, it still stores the total number of lots called.
+    /// The number of called lots until the board has reached a winning state.
+    /// If the winning state has never been reached, it still stores the total number of lots called.
     rounds_played: usize,
-}
-
-/// Collects strings from the iterator into a vector until a seemingly empty string
-/// (including those containing just whitespaces) has been found.
-/// Empty strings will not be included as part of the returned vector.
-/// If the iterator has already been exhausted in the first place, None is returned.
-fn collect_batch<I>(it: &mut I) -> Option<Vec<String>>
-where
-    I: Iterator<Item = String>,
-{
-    let mut collected: Vec<String> = Vec::new();
-    for line in it {
-        if line.trim().is_empty() {
-            return Some(collected);
-        }
-        collected.push(line);
-    }
-    // Checks for the remaining last few lines when iterator has been exhausted
-    collected.is_empty().not().then(|| collected)
 }

@@ -79,7 +79,9 @@ fn parse_input<BR: BufRead>(reader: BR) -> anyhow::Result<Input> {
 /// Represents input data for the problem.
 #[derive(Debug, Clone)]
 struct Input {
+    /// List of initial dots on paper.
     dots: Vec<Point>,
+    /// List of folding instructions.
     fold_instrs: Vec<FoldInstr>,
 }
 
