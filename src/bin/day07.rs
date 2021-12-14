@@ -1,20 +1,20 @@
-//! Day 7: The Treachery of Whales, Advent of Code 2021
+//! Day 7: The Treachery of Whales, Advent of Code 2021  
 //! <https://adventofcode.com/2021/day/7>
-use std::io;
 use std::io::BufRead;
 
 use aoc2021::argparser;
 use aoc2021::quickparse::QuickParse;
 
+/// Main program
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
     let input_reader = input_src.get_reader().expect("cannot open file");
-    let mut positions = parse_input(input_reader).expect("cannot parse input");
+    let Input { mut positions } = Input::from_buffer(input_reader).expect("cannot parse input");
 
     // The rest of the code assumes that all positions are sorted.
     positions.sort_unstable();
 
-    // Part 1: fuels from distance according to linear function (at right-heavy median point)
+    // Part 1: Fuels from distance according to linear function (at right-biased median point)
     let p1_fuels: i64 = {
         let median = positions[positions.len() / 2];
         positions
@@ -25,7 +25,7 @@ fn main() {
     };
     println!("Part 1 answer: {}", p1_fuels);
 
-    // Part 2: fuels from distance according to triangle shape accumulation
+    // Part 2: Fuels from distance according to triangle shape accumulation
     // NOTE: To be honest, I don't really know if checking only the neighboring values
     // of the mean position as the candidate positions are sufficient to find the optimal answer.
     // A few other potential alternative solutions (must validate assumptions first):
@@ -48,15 +48,24 @@ fn main() {
     println!("Part 2 answer: {}", p2_fuels);
 }
 
-/// Parses the initial assignments of lanternfish in the sea.
-/// - TODO: Learn how to parse input from buffer stream with proper short-circuit error handling
-fn parse_input<BR: BufRead>(reader: BR) -> anyhow::Result<Vec<i64>> {
-    let lines: Vec<_> = reader.lines().collect::<Result<_, io::Error>>()?;
-    lines
-        .iter()
-        .flat_map(|line| line.split(','))
-        .map(|token| token.trim().quickparse())
-        .collect()
+/// Program input data
+#[derive(Debug, Clone)]
+struct Input {
+    /// Initial crab positions
+    positions: Vec<i64>,
+}
+
+impl Input {
+    /// Parses program input from buffered reader.
+    fn from_buffer(reader: impl BufRead) -> anyhow::Result<Self> {
+        let mut positions = Vec::new();
+        for line in reader.lines() {
+            for token in line?.split(',') {
+                positions.push(token.trim().quickparse()?);
+            }
+        }
+        Ok(Input { positions })
+    }
 }
 
 /// Fuels required when using one fuel per distance unit.
@@ -64,8 +73,9 @@ fn const_per_unit_dist_fuel(p: i64, q: i64) -> i64 {
     (p - q).abs()
 }
 
-/// Fuels required when using linearly increasing amount of fuel for each unit of distance traveled.
-/// This is essentially a triangle number based on the distances apart.
+/// Fuels required when using linearly increasing amount of fuel
+/// for each extra unit of distance traveled,
+/// ended up accumulating to a triangle number in terms of the distances apart.
 fn linear_per_unit_dist_fuel(p: i64, q: i64) -> i64 {
     let dist = (p - q).abs();
     dist * (dist + 1) / 2
