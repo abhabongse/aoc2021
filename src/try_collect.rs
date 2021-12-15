@@ -1,5 +1,6 @@
 //! Implements a blanket trait extension for [`Iterator`] trait which adds methods
 //! to collect items from an iterator into a constant-sized array.
+//! - TODO: Implement this for tuples of lower numbered elements as well as arrays.
 use anyhow::{anyhow, ensure};
 
 /// Trait extension for [`Iterator`] trait which add two of the following methods
