@@ -16,7 +16,7 @@ use aoc2021::try_collect::TryCollectArray;
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
     let input_reader = input_src.get_reader().expect("cannot open file");
-    let Input { dots, fold_instrs } = parse_input(input_reader).expect("cannot parse input");
+    let Input { dots, fold_instrs } = Input::from_buffer(input_reader).expect("cannot parse input");
 
     // Part 1: First fold only
     let p1_dot_count = {
@@ -39,42 +39,6 @@ fn main() {
     write_dots(&mut debug_writer, &dots).expect("error while printing dots to stderr");
 }
 
-/// Parses dot locations and fold instructions.
-fn parse_input<BR: BufRead>(reader: BR) -> anyhow::Result<Input> {
-    let mut dots = Vec::new();
-    let mut fold_instrs = Vec::new();
-
-    let mut lines = reader.lines();
-    for line in lines.by_ref() {
-        let line = line.context("cannot read a line of string")?;
-        if line.trim().is_empty() {
-            break;
-        }
-        let [x, y] = line.split(',').try_collect_exact_array()?;
-        dots.push(Point {
-            x: x.trim().quickparse()?,
-            y: y.trim().quickparse()?,
-        })
-    }
-    for line in lines.by_ref() {
-        lazy_static! {
-            static ref RE: Regex = Regex::new(r"\s*fold\s+along\s+([xy])=(\d+)\s*").unwrap();
-        }
-        let line = line.context("cannot read a line of string")?;
-        let captures = RE
-            .captures(line.as_str())
-            .ok_or_else(|| anyhow!("invalid folding instruction: {}", line))?;
-        let c = captures[2].quickparse()?;
-        let instr = match &captures[1] {
-            "x" => FoldInstr::XEquals(c),
-            "y" => FoldInstr::YEquals(c),
-            axis => bail!("unrecognized axis: {}", axis),
-        };
-        fold_instrs.push(instr);
-    }
-    Ok(Input { dots, fold_instrs })
-}
-
 /// Program input data
 #[derive(Debug, Clone)]
 struct Input {
@@ -82,6 +46,44 @@ struct Input {
     dots: Vec<Point>,
     /// Sequence of folding instructions
     fold_instrs: Vec<FoldInstr>,
+}
+
+impl Input {
+    /// Parses program input from buffered reader.
+    fn from_buffer(reader: impl BufRead) -> anyhow::Result<Self> {
+        let mut dots = Vec::new();
+        let mut fold_instrs = Vec::new();
+
+        let mut lines = reader.lines();
+        for line in lines.by_ref() {
+            let line = line.context("cannot read a line of string")?;
+            if line.trim().is_empty() {
+                break;
+            }
+            let [x, y] = line.split(',').try_collect_exact_array()?;
+            dots.push(Point {
+                x: x.trim().quickparse()?,
+                y: y.trim().quickparse()?,
+            })
+        }
+        for line in lines.by_ref() {
+            lazy_static! {
+                static ref RE: Regex = Regex::new(r"\s*fold\s+along\s+([xy])=(\d+)\s*").unwrap();
+            }
+            let line = line.context("cannot read a line of string")?;
+            let captures = RE
+                .captures(line.as_str())
+                .ok_or_else(|| anyhow!("invalid folding instruction: {}", line))?;
+            let c = captures[2].quickparse()?;
+            let instr = match &captures[1] {
+                "x" => FoldInstr::XEquals(c),
+                "y" => FoldInstr::YEquals(c),
+                axis => bail!("unrecognized axis: {}", axis),
+            };
+            fold_instrs.push(instr);
+        }
+        Ok(Input { dots, fold_instrs })
+    }
 }
 
 /// Point in two-dimensional space
