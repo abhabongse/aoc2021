@@ -1,36 +1,28 @@
-//! Day 10: Syntax Scoring, Advent of Code 2021
+//! Day 10: Syntax Scoring, Advent of Code 2021  
 //! <https://adventofcode.com/2021/day/10>
-use std::collections::HashMap;
 use std::io::BufRead;
 
-use anyhow::Context;
 use lazy_static::lazy_static;
 
 use aoc2021::argparser;
 
 lazy_static! {
-    /// Mapping from closing character to error score.
-    ///
-    /// # Implementation Note
-    /// This should have been a simple array of tuples due to smaller overhead.
-    static ref ERROR_SCORE_BY_CHAR: HashMap<char, i64> =
-        HashMap::from([(')', 3), (']', 57), ('}', 1197), ('>', 25137)]);
-    /// Mapping from closing character to individual autocompletion score.
-    ///
-    /// # Implementation Note
-    /// This should have been a simple array of tuples due to smaller overhead.
-    static ref AUTOCOMPLETE_SCORE_BY_CHAR: HashMap<char, i64> =
-        HashMap::from([(')', 1), (']', 2), ('}', 3), ('>', 4)]);
+    /// Mapping from closing character to error score
+    static ref ERROR_SCORE_BY_CHAR: [(char, i64); 4] = [(')', 3), (']', 57), ('}', 1197), ('>', 25137)];
+    /// Mapping from closing character to individual autocompletion score
+    static ref AUTOCOMPLETE_SCORE_BY_CHAR: [(char, i64); 4] = [(')', 1), (']', 2), ('}', 3), ('>', 4)];
 }
 
+/// Main program
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
     let input_reader = input_src.get_reader().expect("cannot open file");
-    let lines = parse_input(input_reader).expect("cannot parse input");
+    let Input { statements } = Input::from_buffer(input_reader).expect("cannot parse input");
 
-    let check_results: Vec<_> = lines.iter().map(check_syntax).collect();
+    // Check syntax of all code statements
+    let check_results: Vec<_> = statements.iter().map(check_syntax).collect();
 
-    // Part 1: corrupt error score
+    // Part 1: Corrupt error score
     let p1_score: i64 = check_results
         .iter()
         .filter_map(|result| match result {
@@ -40,7 +32,7 @@ fn main() {
         .sum();
     println!("Part 1 answer: {}", p1_score);
 
-    // Part 2: autocomplete score
+    // Part 2: Autocomplete score
     let p2_score = {
         let mut autocomplete_score: Vec<_> = check_results
             .iter()
@@ -55,29 +47,36 @@ fn main() {
     println!("Part 2 answer: {}", p2_score);
 }
 
-/// Parses the submarine subsystem source codes.
-fn parse_input<BR: BufRead>(reader: BR) -> anyhow::Result<Vec<String>> {
-    reader
-        .lines()
-        .map(|line| {
-            Ok(line
-                .context("cannot read a line of string")?
-                .trim()
-                .to_string())
-        })
-        .collect()
+/// Program input data
+#[derive(Debug, Clone)]
+struct Input {
+    /// Submarine system source code
+    statements: Vec<String>,
 }
 
-/// Three possible outcomes from validating navigating submarine subsystem chunks.
+impl Input {
+    /// Parses program input from buffered reader.
+    fn from_buffer(reader: impl BufRead) -> anyhow::Result<Self> {
+        let mut statements = Vec::new();
+        for line in reader.lines() {
+            statements.push(line?.trim().to_string())
+        }
+        Ok(Input { statements })
+    }
+}
+
+/// Possible outcomes for validating a code statement in submarine navigation subsystem
 #[derive(Debug, Clone, Eq, PartialEq)]
 enum SyntaxCheckResult {
-    /// Reading from left to right, no mismatch between designated pairs of characters.
-    /// However, the code may still be incomplete.
-    /// The autocomplete string contains the missing closing characters to complete the code.
-    /// Empty autocomplete string indicates that the original code is already complete.
+    /// This struct indicates that, when parsing a statement from left to right,
+    /// no mismatch between designated pairs of characters have been found.
+    /// However, the code may still be incomplete (e.g. hanging open parentheses, brackets, or braces).
+    /// In such case, the string would contain the missing closing characters to complete the code statement.
+    /// If the original code statement is already complete, the autocomplete string would be empty.
     AutoCompletion(String),
-    /// Reading from left to right, a mismatch between designated pairs of characters has been found.
-    /// It keeps track of the first invalid closing character found in the code.
+    /// This struct indicates that, when parsing a statement from left to right,
+    /// a mismatch between designated pairs of characters has been found.
+    /// In such case, it would keep track of the first invalid closing character encountered in the statement.
     Corrupted(char),
 }
 
@@ -109,16 +108,17 @@ fn check_syntax<T: AsRef<str>>(s: T) -> SyntaxCheckResult {
 }
 
 /// Computes the corrupt error score for the given closing character.
-fn corrupt_error_score(c: char) -> i64 {
-    *ERROR_SCORE_BY_CHAR.get(&c).expect("unknown character")
+fn corrupt_error_score(target: char) -> i64 {
+    let mut it = ERROR_SCORE_BY_CHAR.iter().copied();
+    let find_result = it.find(|&(c, _v)| c == target).expect("unknown character");
+    find_result.1
 }
 
 /// Computes the autocomplete score for the given autocompletion string.
 fn autocomplete_score<T: AsRef<str>>(s: T) -> i64 {
-    s.as_ref().chars().fold(0, |acc, c| {
-        let char_score = AUTOCOMPLETE_SCORE_BY_CHAR
-            .get(&c)
-            .expect("unknown character");
-        5 * acc + char_score
+    s.as_ref().chars().fold(0, |acc, target| {
+        let mut it = AUTOCOMPLETE_SCORE_BY_CHAR.iter().copied();
+        let find_result = it.find(|&(c, _v)| c == target).expect("unknown character");
+        5 * acc + find_result.1
     })
 }

@@ -26,7 +26,7 @@ fn main() {
             .counts();
         point_covers
             .iter()
-            .filter_map(|(k, v)| (*v >= 2).then(|| k))
+            .filter_map(|(k, &v)| (v >= 2).then(|| k))
             .count()
     };
     println!("Part 1 answer: {}", p1_hot_points);
@@ -39,7 +39,7 @@ fn main() {
             .counts();
         point_covers
             .iter()
-            .filter_map(|(k, v)| (*v >= 2).then(|| k))
+            .filter_map(|(k, &v)| (v >= 2).then(|| k))
             .count()
     };
     println!("Part 2 answer: {}", p2_hot_points);
@@ -82,8 +82,8 @@ impl LineSegment {
         let (dx, dy) = (self.q.0 - self.p.0, self.q.1 - self.p.1);
         let steps = num::integer::gcd(dx, dy);
 
-        std::iter::successors(Some(self.p), move |(x, y)| {
-            (self.q != (*x, *y)).then(|| (x + dx / steps, y + dy / steps))
+        std::iter::successors(Some(self.p), move |&(x, y)| {
+            (self.q != (x, y)).then(|| (x + dx / steps, y + dy / steps))
         })
     }
 

@@ -1,4 +1,4 @@
-//! Day 12: Passage Pathing, Advent of Code 2021
+//! Day 12: Passage Pathing, Advent of Code 2021  
 //! <https://adventofcode.com/2021/day/12>
 use std::collections::HashMap;
 use std::io::BufRead;
@@ -9,20 +9,21 @@ use itertools::Itertools;
 use aoc2021::argparser;
 use aoc2021::try_collect::TryCollectArray;
 
+/// Main program
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
     let input_reader = input_src.get_reader().expect("cannot open file");
-    let graph = parse_input(input_reader).expect("cannot parse input");
+    let Input { graph } = Input::from_buffer(input_reader).expect("cannot parse input");
 
-    // Part 1: visiting each small cave at most once
+    // Part 1: Visiting each small cave at most once
     let p1_answer = {
         let mut count: usize = 0;
         graph.exhaustive_traverse(
             "start",
             "end",
             // Acceptable cases:
-            // 1.  the next node is a big cave (containing uppercase letters), or
-            // 2.  the path so far does _not_ contain such next node
+            // 1.  The next node is a big cave (containing uppercase letters), or
+            // 2.  The path so far does _not_ contain such next node
             |next, path| next.chars().any(char::is_uppercase) || !path.contains(&next),
             |_path| {
                 // eprintln!("=> {}", _path.join(", "));
@@ -33,17 +34,19 @@ fn main() {
     };
     println!("Part 1 answer: {}", p1_answer);
 
-    // Part 2: visiting each small cave at most once, except for one that is allowed up to twice
-    //         but excluding the start and the end
+    // Part 2: Visiting each small cave at most once,
+    // except for one that is allowed up to twice
+    // but excluding the start and the end
     let p2_answer = {
         let mut count = 0;
         graph.exhaustive_traverse(
             "start",
             "end",
             // Acceptable cases (the first two are the same as part 1):
-            // 1.  the next node is a big cave (containing uppercase letters), or
-            // 2.  the path so far does _not_ contain such next node, or
-            // 3.  the next node does _not_ go back to "start" and all previous small caves are unique visits
+            // 1.  The next node is a big cave (containing uppercase letters), or
+            // 2.  The path so far does _not_ contain such next node, or
+            // 3.  The next node does _not_ go back to "start"
+            //     AND all previous small caves are unique visits (new!)
             |next, path| {
                 next.chars().all(char::is_uppercase)
                     || !path.contains(&next)
@@ -63,16 +66,25 @@ fn main() {
     println!("Part 2 answer: {}", p2_answer);
 }
 
-/// Parses the graph data (list of edges) as an adjacency list.
-fn parse_input<BR: BufRead>(reader: BR) -> anyhow::Result<Graph> {
-    let mut graph = Graph::new();
-    for line in reader.lines() {
-        let line = line.context("cannot read a line of string")?;
-        let [u, v] = line.trim().split('-').try_collect_exact_array()?;
-        graph.add_edge(u, v);
-        graph.add_edge(v, u);
+/// Program input data
+#[derive(Debug, Clone)]
+struct Input {
+    /// Graph data, as adjacency lists
+    graph: Graph,
+}
+
+impl Input {
+    /// Parses program input from buffered reader.
+    fn from_buffer(reader: impl BufRead) -> anyhow::Result<Self> {
+        let mut graph = Graph::new();
+        for line in reader.lines() {
+            let line = line.context("cannot read a line of string")?;
+            let [u, v] = line.trim().split('-').try_collect_exact_array()?;
+            graph.add_edge(u, v);
+            graph.add_edge(v, u);
+        }
+        Ok(Input { graph })
     }
-    Ok(graph)
 }
 
 /// Graph data with adjacency list data structure.
@@ -95,28 +107,30 @@ impl Graph {
     /// # Implementation Note
     /// I am not satisfied with my current optimizations
     /// to avoid duplicated allocations of identical string.
-    /// - TODO: Ideally, I should figure out how to approach this.
-    ///     -  Possibility #1: using reference counting [`std::rc::Rc`]
-    ///     -  Possibility #2: Look up how to manage lifetimes within structs
-    ///        when one member contains a reference to the other member
-    fn add_edge<T: AsRef<str>>(&mut self, u: T, v: T) {
+    /// - TODO: Introduce remapping from string identifier to an integer
+    fn add_edge<T>(&mut self, u: T, v: T)
+    where
+        T: AsRef<str>,
+    {
         let u = u.as_ref().to_string();
         let v = v.as_ref().to_string();
         self.adjlists.entry(u).or_insert_with(Vec::new).push(v);
     }
 
     /// Exhaustive path searching from `start` to `end`.
-    /// Before walking onto each next node, the predicate `decide_should_walk` decides
-    /// whether to proceed based on the next node and the path walked so far from the `start`.
-    /// For each time a finished path from `start` to `end` is found,
-    /// the function `process_finished_path` is invoked on such path for further processing.
-    fn exhaustive_traverse<T: AsRef<str>, P, F>(
+    /// Before the function decides to queue up walking onto an adjacent node,
+    /// the predicate `decide_should_walk` decides whether to proceed
+    /// based on the identifier of such node, and the path walked so far from the `start`.
+    /// Once and each time a finished path from `start` to `end` has been found,
+    /// the function `process_finished_path` is invoked with such path for further processing.
+    fn exhaustive_traverse<T, P, F>(
         &self,
         start: T,
         end: T,
         mut decide_should_walk: P,
         mut process_finished_path: F,
     ) where
+        T: AsRef<str>,
         P: FnMut(&str, &[&str]) -> bool,
         F: FnMut(&[&str]),
     {

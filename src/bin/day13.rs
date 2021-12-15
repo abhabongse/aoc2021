@@ -1,4 +1,4 @@
-//! Day 13: Transparent Origami, Advent of Code 2021
+//! Day 13: Transparent Origami, Advent of Code 2021  
 //! <https://adventofcode.com/2021/day/13>
 use std::collections::HashSet;
 use std::io;
@@ -12,14 +12,13 @@ use aoc2021::argparser;
 use aoc2021::quickparse::QuickParse;
 use aoc2021::try_collect::TryCollectArray;
 
-use crate::FoldInstr::{XEquals, YEquals};
-
+/// Main program
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
     let input_reader = input_src.get_reader().expect("cannot open file");
     let Input { dots, fold_instrs } = parse_input(input_reader).expect("cannot parse input");
 
-    // Part 1: first fold only
+    // Part 1: First fold only
     let p1_dot_count = {
         let dots: HashSet<Point> = dots
             .iter()
@@ -29,7 +28,7 @@ fn main() {
     };
     println!("Part 1 answer: {}", p1_dot_count);
 
-    // Part 2: fold and print result
+    // Part 2: Fold and print result
     let dots: HashSet<Point> = fold_instrs
         .iter()
         .fold(dots.into_iter().collect(), |dots, instr| {
@@ -67,8 +66,8 @@ fn parse_input<BR: BufRead>(reader: BR) -> anyhow::Result<Input> {
             .ok_or_else(|| anyhow!("invalid folding instruction: {}", line))?;
         let c = captures[2].quickparse()?;
         let instr = match &captures[1] {
-            "x" => XEquals(c),
-            "y" => YEquals(c),
+            "x" => FoldInstr::XEquals(c),
+            "y" => FoldInstr::YEquals(c),
             axis => bail!("unrecognized axis: {}", axis),
         };
         fold_instrs.push(instr);
@@ -76,25 +75,30 @@ fn parse_input<BR: BufRead>(reader: BR) -> anyhow::Result<Input> {
     Ok(Input { dots, fold_instrs })
 }
 
-/// Represents input data for the problem.
+/// Program input data
 #[derive(Debug, Clone)]
 struct Input {
-    /// List of initial dots on paper.
+    /// Collection of initial dots on paper
     dots: Vec<Point>,
-    /// List of folding instructions.
+    /// Sequence of folding instructions
     fold_instrs: Vec<FoldInstr>,
 }
 
+/// Point in two-dimensional space
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
 struct Point {
+    /// x-coordinate
     x: u64,
+    /// y-coordinate
     y: u64,
 }
 
-/// Fold instructions, either along X=c or along Y=c.
+/// Fold instructions
 #[derive(Debug, Clone, Copy)]
 enum FoldInstr {
+    /// Folding along the line X = c
     XEquals(u64),
+    /// Folding along the line Y = c
     YEquals(u64),
 }
 
@@ -117,8 +121,8 @@ impl FoldInstr {
     }
 }
 
-/// Printing the dots as the debugging mechanisms
-fn write_dots<W: Write>(writer: &mut W, dots: &HashSet<Point>) -> anyhow::Result<()> {
+/// Prints the dots as the debugging mechanisms
+fn write_dots(writer: &mut impl Write, dots: &HashSet<Point>) -> anyhow::Result<()> {
     ensure!(!dots.is_empty(), "empty dots specified");
     let rows = *dots.iter().map(|Point { x: _, y }| y).max().unwrap() + 1;
     let cols = *dots.iter().map(|Point { x, y: _ }| x).max().unwrap() + 1;
@@ -126,9 +130,9 @@ fn write_dots<W: Write>(writer: &mut W, dots: &HashSet<Point>) -> anyhow::Result
         let mut buffer: String = (0..cols)
             .map(|x| {
                 if dots.contains(&Point { x, y }) {
-                    '#'
+                    "🟨"
                 } else {
-                    '.'
+                    "⬛️" // this emoji contains two codepoints
                 }
             })
             .collect();

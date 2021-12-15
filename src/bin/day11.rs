@@ -1,32 +1,33 @@
-//! Day 11: Dumbo Octopus, Advent of Code 2021
+//! Day 11: Dumbo Octopus, Advent of Code 2021  
 //! <https://adventofcode.com/2021/day/11>
 use std::collections::{HashSet, VecDeque};
 use std::io;
 use std::io::{BufRead, Write};
 use std::ops::ControlFlow;
 
-use anyhow::{anyhow, ensure, Context};
+use anyhow::{anyhow, ensure};
 
 use aoc2021::argparser;
 use aoc2021::grid::{king_step_neighbors, FixedGrid};
 
+/// Main program
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
     let input_reader = input_src.get_reader().expect("cannot open file");
-    let grid: FixedGrid<_, 10, 10> = parse_input(input_reader).expect("cannot parse input");
+    let Input { grid } = Input::from_buffer(input_reader).expect("cannot parse input");
 
     // Check the input grid
     let mut debug_writer = io::LineWriter::new(io::stderr());
     write_grid(&mut debug_writer, &grid).expect("error while printing a grid to stderr");
 
-    // Part 1: number of flashes after 100 steps
+    // Part 1: Number of flashes after 100 steps
     let p1_answer: usize = {
         let mut grid = grid.clone();
         (0..100).map(|_| update_grid(&mut grid)).sum()
     };
     println!("Part 1 answer: {}", p1_answer);
 
-    // Part 2: number of steps to get first simultaneous flashes
+    // Part 2: Number of steps to get first simultaneous flashes
     let p2_answer: usize = {
         let mut grid = grid;
         let result = (1..).try_for_each(|i| {
@@ -45,29 +46,31 @@ fn main() {
     println!("Part 2 answer: {}", p2_answer);
 }
 
-/// Parses the energy level of octopuses in 10 by 10 grid.
-fn parse_input<BR: BufRead, const R: usize, const C: usize>(
-    reader: BR,
-) -> anyhow::Result<FixedGrid<u8, R, C>> {
-    let grid: Vec<_> = reader
-        .lines()
-        .enumerate()
-        .map(|(i, line)| {
-            ensure!(i < R, "too many lines read");
-            let line = line.context("cannot read a line of string")?;
-            let row: Vec<_> = line
-                .trim()
-                .chars()
-                .map(|c| {
-                    Ok(c.to_digit(10)
-                        .ok_or_else(|| anyhow!("unrecognized digit: {}", c))?
-                        as u8)
-                })
-                .collect::<anyhow::Result<_>>()?;
-            Ok(row)
-        })
-        .collect::<anyhow::Result<_>>()?;
-    FixedGrid::try_from(grid)
+/// Program input data
+#[derive(Debug, Clone)]
+struct Input {
+    /// Energy levels of octopuses in 10×10 grid
+    grid: FixedGrid<u8, 10, 10>,
+}
+
+impl Input {
+    /// Parses program input from buffered reader.
+    fn from_buffer(reader: impl BufRead) -> anyhow::Result<Self> {
+        let mut grid = Vec::new();
+        for (i, line) in reader.lines().enumerate() {
+            ensure!(i < 10, "too many lines read");
+            let mut row = Vec::new();
+            for c in line?.trim().chars() {
+                let d = c
+                    .to_digit(10)
+                    .ok_or_else(|| anyhow!("unrecognized digit: {}", c))?;
+                row.push(d as u8);
+            }
+            grid.push(row);
+        }
+        let grid = FixedGrid::try_from(grid)?;
+        Ok(Input { grid })
+    }
 }
 
 /// Updates the state of octopus grid in-place, and returns the number of flashed octopuses.
@@ -112,9 +115,9 @@ fn grid_just_all_flashed<const R: usize, const C: usize>(grid: &FixedGrid<u8, R,
 }
 
 /// Printing the grid as the debugging method.
-/// - TODO: Learn proper logging best practices.
-fn write_grid<W: Write, const R: usize, const C: usize>(
-    writer: &mut W,
+/// - TODO: Learn proper logging best practices
+fn write_grid<const R: usize, const C: usize>(
+    writer: &mut impl Write,
     grid: &FixedGrid<u8, R, C>,
 ) -> anyhow::Result<()> {
     for i in 0..R {

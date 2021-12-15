@@ -257,7 +257,7 @@ where
         T: Sum,
     {
         iproduct!(0..R, 0..C)
-            .filter(|(i, j)| !self.marks[*i][*j])
+            .filter(|&(i, j)| !self.marks[i][j])
             .map(|(i, j)| self.board.numbers[i][j])
             .sum()
     }

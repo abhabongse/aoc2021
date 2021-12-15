@@ -21,20 +21,20 @@ fn main() {
     // Find all low points in the heightmap
     let (rows, cols) = heightmap.shape();
     let low_points: Vec<_> = iproduct!(0..rows, 0..cols)
-        .filter(|pos| {
-            orthogonal_neighbors(*pos, (rows, cols))
+        .filter(|&pos| {
+            orthogonal_neighbors(pos, (rows, cols))
                 .into_iter()
-                .all(|other_pos| heightmap[*pos] < heightmap[other_pos])
+                .all(|other_pos| heightmap[pos] < heightmap[other_pos])
         })
         .collect();
 
     // Part 1: Sum or risk levels of the seafloor heightmap
-    let p1_answer: i64 = low_points.iter().map(|pos| heightmap[*pos] + 1).sum();
+    let p1_answer: i64 = low_points.iter().map(|&pos| heightmap[pos] + 1).sum();
     println!("Part 1 answer: {}", p1_answer);
 
     // Part 2: Find three largest basins
     let p2_answer: usize = {
-        let basin_sizes = low_points.iter().map(|pos| basin_size(*pos, &heightmap));
+        let basin_sizes = low_points.iter().map(|&pos| basin_size(pos, &heightmap));
         let top_basin_sizes = basin_sizes.map(Reverse).k_smallest(3).map(|s| s.0);
         top_basin_sizes.into_iter().product()
     };

@@ -101,7 +101,7 @@ impl DisplayLog {
         self.digit_patterns
             .iter()
             .copied()
-            .find_position(|p| *p == pattern)
+            .find_position(|&p| p == pattern)
             .map(|(pos, _)| pos as u64)
     }
 
@@ -128,7 +128,7 @@ impl DisplayLog {
         self.display_patterns
             .iter()
             .copied()
-            .filter(|p| self.can_quickly_decode(*p).unwrap_or(false))
+            .filter(|&p| self.can_quickly_decode(p).unwrap_or(false))
             .count()
     }
 
@@ -215,11 +215,7 @@ fn pattern_by_xor_mask_tests(patterns: &[u8; 10], tests: &[(u8, u32)]) -> u8 {
     patterns
         .iter()
         .copied()
-        .filter(|n| {
-            tests
-                .iter()
-                .all(|test| (*n ^ test.0).count_ones() == test.1)
-        })
+        .filter(|&n| tests.iter().all(|test| (n ^ test.0).count_ones() == test.1))
         .exactly_one()
         .expect("expected exactly one element here")
 }
