@@ -3,7 +3,7 @@ use std::ops::{Index, IndexMut};
 use anyhow::{bail, ensure};
 use itertools::iproduct;
 
-use super::GridIndex;
+use super::GridPoint;
 
 /// A heap-allocated, two-dimensional grid structure with static size.
 ///
@@ -15,7 +15,7 @@ pub struct FixedGrid<T, const R: usize, const C: usize>(Box<[T]>);
 
 impl<T, const R: usize, const C: usize> FixedGrid<T, R, C> {
     /// Transforms a two-dimensional index into a flatten index.
-    fn transform_index(&self, index: GridIndex) -> anyhow::Result<usize> {
+    fn transform_index(&self, index: GridPoint) -> anyhow::Result<usize> {
         let (i, j) = index;
         if i >= R {
             bail!(
@@ -37,24 +37,24 @@ impl<T, const R: usize, const C: usize> FixedGrid<T, R, C> {
     }
 
     /// Returns a reference to an item in the grid; `None` if out of bounds.
-    pub fn get(&self, index: GridIndex) -> Option<&<Self as Index<GridIndex>>::Output> {
+    pub fn get(&self, index: GridPoint) -> Option<&<Self as Index<GridPoint>>::Output> {
         let index = self.transform_index(index).ok()?;
         self.0.get(index)
     }
 
     /// Returns a mutable reference to an item in the grid; `None` if out of bounds.
-    pub fn get_mut(&mut self, index: GridIndex) -> Option<&mut <Self as Index<GridIndex>>::Output> {
+    pub fn get_mut(&mut self, index: GridPoint) -> Option<&mut <Self as Index<GridPoint>>::Output> {
         let index = self.transform_index(index).ok()?;
         self.0.get_mut(index)
     }
 
     /// An iterator which produces row-major indices of the grid.
-    pub fn indices_by_row(&self) -> Box<dyn Iterator<Item = GridIndex>> {
+    pub fn indices_by_row(&self) -> Box<dyn Iterator<Item = GridPoint>> {
         Box::new(iproduct!(0..R, 0..C))
     }
 
     /// An iterator which produces column-major indices of the grid.
-    pub fn indices_by_column(&self) -> Box<dyn Iterator<Item = GridIndex>> {
+    pub fn indices_by_column(&self) -> Box<dyn Iterator<Item = GridPoint>> {
         Box::new(iproduct!(0..C, 0..R).map(|(j, i)| (i, j)))
     }
 }
@@ -96,17 +96,17 @@ impl<T, const R: usize, const C: usize> TryFrom<Vec<Vec<T>>> for FixedGrid<T, R,
     }
 }
 
-impl<T, const R: usize, const C: usize> Index<GridIndex> for FixedGrid<T, R, C> {
+impl<T, const R: usize, const C: usize> Index<GridPoint> for FixedGrid<T, R, C> {
     type Output = T;
 
-    fn index(&self, index: GridIndex) -> &Self::Output {
+    fn index(&self, index: GridPoint) -> &Self::Output {
         let index = self.transform_index(index).unwrap();
         &self.0[index]
     }
 }
 
 impl<T, const R: usize, const C: usize> IndexMut<(usize, usize)> for FixedGrid<T, R, C> {
-    fn index_mut(&mut self, index: GridIndex) -> &mut Self::Output {
+    fn index_mut(&mut self, index: GridPoint) -> &mut Self::Output {
         let index = self.transform_index(index).unwrap();
         &mut self.0[index]
     }
