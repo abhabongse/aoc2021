@@ -5,7 +5,7 @@ use std::io::BufRead;
 use std::ops::{Deref, Not};
 use std::str::FromStr;
 
-use anyhow::anyhow;
+use anyhow::Context;
 
 use aoc2021::argparser;
 use aoc2021::quickparse::QuickParse;
@@ -95,7 +95,7 @@ impl FromStr for BitVec {
         for c in s.trim().chars() {
             let d = c
                 .to_digit(2)
-                .ok_or_else(|| anyhow!("invalid character in bit string: {}", c))?;
+                .with_context(|| format!("invalid character in bit string: {}", c))?;
             inner.push(d != 0);
         }
         Ok(BitVec(inner))
@@ -121,7 +121,7 @@ impl Deref for BitVec {
 /// -  `epsilon` = radix minority voting of the bit vector data
 fn compute_power_consumption(numbers: &[&BitVec]) -> anyhow::Result<u64> {
     let bit_length = numbers.iter().map(|v| v.len()).max();
-    let bit_length = bit_length.ok_or(anyhow!("empty collection of bit vectors"))?;
+    let bit_length = bit_length.context("empty collection of bit vectors")?;
     let gamma: BitVec = (0..bit_length)
         .map(|index| cast_votes(numbers, index))
         .collect::<anyhow::Result<_>>()?;
@@ -157,7 +157,7 @@ where
             return survivors
                 .get(0)
                 .copied()
-                .ok_or(anyhow!("empty collection of bit vectors"));
+                .context("empty collection of bit vectors");
         }
         let vote_result = vote_criterion(survivors.as_slice(), index)?;
         survivors = survivors
@@ -175,7 +175,7 @@ fn cast_votes(numbers: &[&BitVec], index: usize) -> anyhow::Result<bool> {
     for num in numbers.iter() {
         let vote = num
             .get(index)
-            .ok_or_else(|| anyhow!("index {} out of bounds for string {}", index, num))?;
+            .with_context(|| format!("index {} out of bounds for string {}", index, num))?;
         tally += if *vote { 1 } else { -1 };
     }
     Ok(tally >= 0)

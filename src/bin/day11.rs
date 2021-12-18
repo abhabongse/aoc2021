@@ -5,7 +5,7 @@ use std::io;
 use std::io::{BufRead, Write};
 use std::ops::ControlFlow;
 
-use anyhow::{anyhow, ensure};
+use anyhow::{ensure, Context};
 
 use aoc2021::argparser;
 use aoc2021::grid::{king_step_neighbors, FixedGrid};
@@ -63,7 +63,7 @@ impl Input {
             for c in line?.trim().chars() {
                 let d = c
                     .to_digit(10)
-                    .ok_or_else(|| anyhow!("unrecognized digit: {}", c))?;
+                    .with_context(|| format!("unrecognized digit: {}", c))?;
                 row.push(d as u8);
             }
             grid.push(row);

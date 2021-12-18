@@ -2,7 +2,7 @@
 //! <https://adventofcode.com/2021/day/6>
 use std::io::BufRead;
 
-use anyhow::anyhow;
+use anyhow::Context;
 // TODO: Stop using nalgebra, use homegrown grid
 use nalgebra::{matrix, vector, SVector};
 
@@ -80,7 +80,7 @@ fn count_fishes_by_attr<const MAX_ATTR: usize>(
     for attr in fish_attrs.iter().copied() {
         let count_mut = counts
             .get_mut(attr)
-            .ok_or_else(|| anyhow!("fish attribute {} exceed limit of {}", attr, MAX_ATTR - 1))?;
+            .with_context(|| format!("fish attribute {} exceed limit of {}", attr, MAX_ATTR - 1))?;
         *count_mut += 1;
     }
     Ok(counts)

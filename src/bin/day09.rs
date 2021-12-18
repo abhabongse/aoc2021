@@ -4,7 +4,7 @@ use std::cmp::Reverse;
 use std::collections::{HashSet, VecDeque};
 use std::io::BufRead;
 
-use anyhow::anyhow;
+use anyhow::Context;
 use itertools::{iproduct, Itertools};
 // TODO: Stop using nalgebra, use homegrown grid
 use nalgebra::{DMatrix, RowDVector};
@@ -57,7 +57,7 @@ impl Input {
             for c in line?.trim().chars() {
                 let d = c
                     .to_digit(10)
-                    .ok_or_else(|| anyhow!("invalid character in decimal string: {}", c))?
+                    .with_context(|| format!("invalid character in decimal string: {}", c))?
                     as i64;
                 row_elements.push(d)
             }

@@ -3,7 +3,7 @@
 use std::io::BufRead;
 use std::str::FromStr;
 
-use anyhow::{anyhow, bail, ensure};
+use anyhow::{bail, ensure, Context};
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -116,7 +116,7 @@ impl DisplayLog {
     fn can_quickly_decode(&self, pattern: u8) -> anyhow::Result<bool> {
         let digit = self
             .decode_pattern(pattern)
-            .ok_or_else(|| anyhow!("cannot decode toggle pattern: {:02b}", pattern))?;
+            .with_context(|| format!("cannot decode toggle pattern: {:02b}", pattern))?;
         Ok([1, 4, 7, 8].into_iter().any(|target| digit == target))
     }
 
@@ -140,7 +140,7 @@ impl DisplayLog {
             .try_fold(0, |acc, pattern| {
                 Some(10 * acc + self.decode_pattern(pattern)?)
             })
-            .ok_or(anyhow!("cannot decode output display patterns"))
+            .context("cannot decode output display patterns")
     }
 }
 
@@ -160,7 +160,7 @@ impl FromStr for DisplayLog {
         }
         let captures = RE
             .captures(s)
-            .ok_or_else(|| anyhow!("invalid line display input: {}", s))?;
+            .with_context(|| format!("invalid line display input: {}", s))?;
         let all_patterns: Vec<_> = (1..=14)
             .map(|i| pattern_from_scribbles(&captures[i]))
             .collect::<anyhow::Result<_>>()?;

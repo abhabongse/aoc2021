@@ -3,7 +3,7 @@
 use std::io::BufRead;
 use std::str::FromStr;
 
-use anyhow::anyhow;
+use anyhow::Context;
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -109,7 +109,7 @@ impl FromStr for LineSegment {
         }
         let captures = RE
             .captures(s)
-            .ok_or_else(|| anyhow!("invalid line segment input: {}", s))?;
+            .with_context(|| format!("invalid line segment input: {}", s))?;
         Ok(LineSegment {
             p: (captures[1].parse()?, captures[2].parse()?),
             q: (captures[3].parse()?, captures[4].parse()?),

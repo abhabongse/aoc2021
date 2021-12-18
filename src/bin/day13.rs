@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use std::io;
 use std::io::{BufRead, Write};
 
-use anyhow::{anyhow, bail, ensure, Context};
+use anyhow::{bail, ensure, Context};
 use lazy_static::lazy_static;
 use regex::Regex;
 
@@ -73,7 +73,7 @@ impl Input {
             let line = line.context("cannot read a line of string")?;
             let captures = RE
                 .captures(line.as_str())
-                .ok_or_else(|| anyhow!("invalid folding instruction: {}", line))?;
+                .with_context(|| format!("invalid folding instruction: {}", line))?;
             let c = captures[2].quickparse()?;
             let instr = match &captures[1] {
                 "x" => FoldInstr::XEquals(c),
