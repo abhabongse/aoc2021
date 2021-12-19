@@ -6,9 +6,11 @@ use std::io::{BufRead, Write};
 use std::ops::ControlFlow;
 
 use anyhow::{ensure, Context};
+use nalgebra::SMatrix;
 
 use aoc2021::argparser;
-use aoc2021::grid::{king_step_neighbors, FixedGrid};
+use aoc2021::collect_array::CollectArray;
+use aoc2021::grid::{king_adjacent, MatrixExt};
 
 /// Main program
 fn main() {
@@ -22,14 +24,14 @@ fn main() {
 
     // Part 1: Number of flashes after 100 steps
     let p1_answer: usize = {
-        let mut grid = grid.clone();
+        let mut grid = grid; // make a copy
         (0..100).map(|_| update_grid(&mut grid)).sum()
     };
     println!("Part 1 answer: {}", p1_answer);
 
     // Part 2: Number of steps to get first simultaneous flashes
     let p2_answer: usize = {
-        let mut grid = grid;
+        let mut grid = grid; // make a copy
         let result = (1..).try_for_each(|i| {
             update_grid(&mut grid);
             if grid_just_all_flashed(&grid) {
@@ -50,7 +52,7 @@ fn main() {
 #[derive(Debug, Clone)]
 struct Input {
     /// Energy levels of octopuses in 10×10 grid
-    grid: FixedGrid<u8, 10, 10>,
+    grid: SMatrix<u8, 10, 10>,
 }
 
 impl Input {
@@ -66,20 +68,20 @@ impl Input {
                     .with_context(|| format!("unrecognized digit: {}", c))?;
                 row.push(d as u8);
             }
-            grid.push(row);
+            grid.push(row.into_iter().collect_exact_array()?);
         }
-        let grid = FixedGrid::try_from(grid)?;
+        let grid = SMatrix::from(grid.into_iter().collect_exact_array()?);
         Ok(Input { grid })
     }
 }
 
 /// Updates the state of octopus grid in-place, and returns the number of flashed octopuses.
-fn update_grid<const R: usize, const C: usize>(grid: &mut FixedGrid<u8, R, C>) -> usize {
+fn update_grid<const R: usize, const C: usize>(grid: &mut SMatrix<u8, R, C>) -> usize {
     let mut queue = VecDeque::new();
     let mut marked = HashSet::new();
 
     // Step 1: Increment energy level of each grid cell by one
-    for pos in grid.indices_by_row() {
+    for pos in grid.indices() {
         grid[pos] += 1;
         if grid[pos] >= 10 {
             queue.push_back(pos);
@@ -89,7 +91,7 @@ fn update_grid<const R: usize, const C: usize>(grid: &mut FixedGrid<u8, R, C>) -
 
     // Step 2: Resolve the triggering chain of flashes
     while let Some(pos) = queue.pop_front() {
-        for other_pos in king_step_neighbors(pos, (R, C)) {
+        for other_pos in king_adjacent(pos, (R, C)) {
             grid[other_pos] += 1;
             if grid[other_pos] >= 10 && !marked.contains(&other_pos) {
                 queue.push_back(other_pos);
@@ -99,7 +101,7 @@ fn update_grid<const R: usize, const C: usize>(grid: &mut FixedGrid<u8, R, C>) -
     }
 
     // Step 3: Clear the energy level of flashed grid cells
-    for pos in grid.indices_by_row() {
+    for pos in grid.indices() {
         if grid[pos] >= 10 {
             grid[pos] = 0;
         }
@@ -110,15 +112,15 @@ fn update_grid<const R: usize, const C: usize>(grid: &mut FixedGrid<u8, R, C>) -
 
 /// Checks that all octopuses in the grid has just simultaneously flashed
 /// (i.e. they have all just reset to zero).
-fn grid_just_all_flashed<const R: usize, const C: usize>(grid: &FixedGrid<u8, R, C>) -> bool {
-    grid.indices_by_row().all(|pos| grid[pos] == 0)
+fn grid_just_all_flashed<const R: usize, const C: usize>(grid: &SMatrix<u8, R, C>) -> bool {
+    grid.indices().all(|pos| grid[pos] == 0)
 }
 
 /// Printing the grid as the debugging method.
 /// - TODO: Learn proper logging best practices
 fn write_grid<const R: usize, const C: usize>(
     writer: &mut impl Write,
-    grid: &FixedGrid<u8, R, C>,
+    grid: &SMatrix<u8, R, C>,
 ) -> anyhow::Result<()> {
     for i in 0..R {
         let mut buffer: String = (0..C)

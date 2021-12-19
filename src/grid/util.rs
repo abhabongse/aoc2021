@@ -1,8 +1,10 @@
-use super::GridPoint;
+/// A two-dimensional grid point, can be used to describe the shape of the grid
+/// as well as describe an indexed position into a cell in the grid.
+pub type GridPoint = (usize, usize);
 
-/// Obtains a list of up to four positions which are orthogonally adjacent to the given `pos`
-/// and are bounded within `(0..rows, 0..cols)` where `(rows, cols) == shape`.
-pub fn orthogonal_neighbors(pos: GridPoint, shape: GridPoint) -> Vec<GridPoint> {
+/// Finds a sequence of up to four grid points which are orthogonally (horizontally or vertically)
+/// adjacent to the given `pos` and are bound within the given rectangular `shape`,
+pub fn orth_adjacent(pos: GridPoint, shape: GridPoint) -> Vec<GridPoint> {
     [(-1, 0), (1, 0), (0, -1), (0, 1)]
         .into_iter()
         .filter_map(|(di, dj)| {
@@ -14,10 +16,10 @@ pub fn orthogonal_neighbors(pos: GridPoint, shape: GridPoint) -> Vec<GridPoint> 
         .collect()
 }
 
-/// Obtains a list of up to eight positions which is a king's move away from the given `pos`
-/// (i.e. are orthogonally and diagonally adjacent to such position)
-/// and are bounded within `(0..rows, 0..cols)` where `(rows, cols) == shape`.
-pub fn king_step_neighbors(pos: GridPoint, shape: GridPoint) -> Vec<GridPoint> {
+/// Finds a sequence of up to eight grid points which is a king's move away from the given `pos`
+/// (i.e. horizontally, vertically, or diagonally adjacent grid points)
+/// and are bound within the given rectangular `shape`.
+pub fn king_adjacent(pos: GridPoint, shape: GridPoint) -> Vec<GridPoint> {
     [
         (-1, 0),
         (-1, 1),

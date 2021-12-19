@@ -9,7 +9,7 @@ use itertools::{iproduct, Itertools};
 use nalgebra::{DMatrix, RowDVector};
 
 use aoc2021::argparser;
-use aoc2021::grid::orthogonal_neighbors;
+use aoc2021::grid::orth_adjacent;
 
 /// Main program
 fn main() {
@@ -21,7 +21,7 @@ fn main() {
     let (rows, cols) = heightmap.shape();
     let low_points: Vec<_> = iproduct!(0..rows, 0..cols)
         .filter(|&pos| {
-            orthogonal_neighbors(pos, (rows, cols))
+            orth_adjacent(pos, (rows, cols))
                 .into_iter()
                 .all(|other_pos| heightmap[pos] < heightmap[other_pos])
         })
@@ -74,14 +74,12 @@ fn basin_size(low_point: (usize, usize), heightmap: &DMatrix<i64>) -> usize {
     let mut queue = VecDeque::from([low_point]);
     let mut visited = HashSet::from([low_point]);
     while let Some(pos) = queue.pop_front() {
-        orthogonal_neighbors(pos, shape)
-            .into_iter()
-            .for_each(|other_pos| {
-                if heightmap[other_pos] < 9 && !visited.contains(&other_pos) {
-                    queue.push_back(other_pos);
-                    visited.insert(other_pos);
-                }
-            });
+        orth_adjacent(pos, shape).into_iter().for_each(|other_pos| {
+            if heightmap[other_pos] < 9 && !visited.contains(&other_pos) {
+                queue.push_back(other_pos);
+                visited.insert(other_pos);
+            }
+        });
     }
     visited.len()
 }
