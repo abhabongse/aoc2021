@@ -5,11 +5,11 @@ use std::collections::{HashSet, VecDeque};
 use std::io::BufRead;
 
 use anyhow::Context;
-use itertools::{iproduct, Itertools};
+use itertools::Itertools;
 use nalgebra::{DMatrix, RowDVector};
 
 use aoc2021::argparser;
-use aoc2021::grid::orth_adjacent;
+use aoc2021::grid::{orth_adjacent, GridIndices};
 
 /// Main program
 fn main() {
@@ -19,7 +19,7 @@ fn main() {
 
     // Find all low points in the heightmap
     let (rows, cols) = heightmap.shape();
-    let low_points: Vec<_> = iproduct!(0..rows, 0..cols)
+    let low_points: Vec<_> = GridIndices::new_row_major(rows, cols)
         .filter(|&pos| {
             orth_adjacent(pos, (rows, cols))
                 .into_iter()

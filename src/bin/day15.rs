@@ -1,5 +1,5 @@
-//! Day N: PROBLEM NAME, Advent of Code 2021  
-//! <https://adventofcode.com/2021/day/N>
+//! Day 15: Chiton, Advent of Code 2021  
+//! <https://adventofcode.com/2021/day/15>
 use std::io::BufRead;
 
 use aoc2021::argparser;

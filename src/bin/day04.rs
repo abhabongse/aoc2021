@@ -9,11 +9,12 @@ use std::iter::Sum;
 use std::str::FromStr;
 
 use anyhow::{anyhow, Context};
-use itertools::{iproduct, Itertools};
+use itertools::Itertools;
 use num::PrimInt;
 
 use aoc2021::argparser;
 use aoc2021::collect_array::CollectArray;
+use aoc2021::grid::GridIndices;
 use aoc2021::quickparse::QuickParse;
 
 /// Main program
@@ -255,7 +256,7 @@ where
     where
         T: Sum,
     {
-        iproduct!(0..R, 0..C)
+        GridIndices::new_row_major(R, C)
             .filter(|&(i, j)| !self.marks[i][j])
             .map(|(i, j)| self.board.numbers[i][j])
             .sum()
