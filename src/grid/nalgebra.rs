@@ -14,6 +14,6 @@ where
     S: RawStorage<T, R, C>,
 {
     fn indices(&self) -> GridIndices {
-        GridIndices::column_major_from_shape(self.shape())
+        GridIndices::column_major(self.shape())
     }
 }

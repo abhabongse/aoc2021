@@ -28,34 +28,24 @@ enum DataOrder {
 }
 
 impl GridIndices {
-    /// Row-major grid indices
-    pub fn new_row_major(nrows: usize, ncols: usize) -> Self {
+    /// Row-major grid indices from shape
+    pub fn row_major(shape: GridPoint) -> Self {
         GridIndices {
-            nrows,
-            ncols,
+            nrows: shape.0,
+            ncols: shape.1,
             consumed: 0,
             order: DataOrder::RowMajor,
         }
     }
 
-    /// Column-major grid indices
-    pub fn new_column_major(nrows: usize, ncols: usize) -> Self {
+    /// Column-major grid indices from shape
+    pub fn column_major(shape: GridPoint) -> Self {
         GridIndices {
-            nrows,
-            ncols,
+            nrows: shape.0,
+            ncols: shape.1,
             consumed: 0,
             order: DataOrder::ColumnMajor,
         }
-    }
-
-    /// Row-major grid indices from shape
-    pub fn row_major_from_shape(shape: GridPoint) -> Self {
-        GridIndices::new_row_major(shape.0, shape.1)
-    }
-
-    /// Column-major grid indices from shape
-    pub fn column_major_from_shape(shape: GridPoint) -> Self {
-        GridIndices::new_column_major(shape.0, shape.1)
     }
 }
 

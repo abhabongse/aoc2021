@@ -126,10 +126,10 @@ impl FoldInstr {
 /// Prints the dots as the debugging mechanisms
 fn write_dots(writer: &mut impl Write, dots: &HashSet<Point>) -> anyhow::Result<()> {
     ensure!(!dots.is_empty(), "empty dots specified");
-    let rows = *dots.iter().map(|Point { x: _, y }| y).max().unwrap() + 1;
-    let cols = *dots.iter().map(|Point { x, y: _ }| x).max().unwrap() + 1;
-    for y in 0..rows {
-        let mut buffer: String = (0..cols)
+    let nrows = *dots.iter().map(|Point { x: _, y }| y).max().unwrap() + 1;
+    let ncols = *dots.iter().map(|Point { x, y: _ }| x).max().unwrap() + 1;
+    for y in 0..nrows {
+        let mut buffer: String = (0..ncols)
             .map(|x| {
                 if dots.contains(&Point { x, y }) {
                     "🟨"

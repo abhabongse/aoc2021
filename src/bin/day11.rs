@@ -6,7 +6,7 @@ use std::io::{BufRead, Write};
 use std::ops::ControlFlow;
 
 use anyhow::{ensure, Context};
-use nalgebra::SMatrix;
+use nalgebra::{Dim, Matrix, RawStorage, RawStorageMut, SMatrix};
 
 use aoc2021::argparser;
 use aoc2021::collect_array::CollectArray;
@@ -58,25 +58,31 @@ struct Input {
 impl Input {
     /// Parses program input from buffered reader.
     fn from_buffer(reader: impl BufRead) -> anyhow::Result<Self> {
-        let mut grid = Vec::new();
+        let mut elements = Vec::new();
         for (i, line) in reader.lines().enumerate() {
             ensure!(i < 10, "too many lines read");
-            let mut row = Vec::new();
+            let mut row_elements = Vec::new();
             for c in line?.trim().chars() {
                 let d = c
                     .to_digit(10)
                     .with_context(|| format!("unrecognized digit: {}", c))?;
-                row.push(d as u8);
+                row_elements.push(d as u8);
             }
-            grid.push(row.into_iter().collect_exact_array()?);
+            elements.push(row_elements.into_iter().collect_exact_array()?);
         }
-        let grid = SMatrix::from(grid.into_iter().collect_exact_array()?);
+        let grid = SMatrix::from(elements.into_iter().collect_exact_array()?);
         Ok(Input { grid })
     }
 }
 
 /// Updates the state of octopus grid in-place, and returns the number of flashed octopuses.
-fn update_grid<const R: usize, const C: usize>(grid: &mut SMatrix<u8, R, C>) -> usize {
+/// - TODO: Function could have been more generic on Matrix type
+fn update_grid<R, C, S>(grid: &mut Matrix<u8, R, C, S>) -> usize
+where
+    R: Dim,
+    C: Dim,
+    S: RawStorageMut<u8, R, C>,
+{
     let mut queue = VecDeque::new();
     let mut marked = HashSet::new();
 
@@ -91,7 +97,7 @@ fn update_grid<const R: usize, const C: usize>(grid: &mut SMatrix<u8, R, C>) -> 
 
     // Step 2: Resolve the triggering chain of flashes
     while let Some(pos) = queue.pop_front() {
-        for other_pos in king_adjacent(pos, (R, C)) {
+        for other_pos in king_adjacent(pos, grid.shape()) {
             grid[other_pos] += 1;
             if grid[other_pos] >= 10 && !marked.contains(&other_pos) {
                 queue.push_back(other_pos);
@@ -112,18 +118,26 @@ fn update_grid<const R: usize, const C: usize>(grid: &mut SMatrix<u8, R, C>) -> 
 
 /// Checks that all octopuses in the grid has just simultaneously flashed
 /// (i.e. they have all just reset to zero).
-fn grid_just_all_flashed<const R: usize, const C: usize>(grid: &SMatrix<u8, R, C>) -> bool {
+fn grid_just_all_flashed<R, C, S>(grid: &Matrix<u8, R, C, S>) -> bool
+where
+    R: Dim,
+    C: Dim,
+    S: RawStorage<u8, R, C>,
+{
     grid.indices().all(|pos| grid[pos] == 0)
 }
 
 /// Printing the grid as the debugging method.
 /// - TODO: Learn proper logging best practices
-fn write_grid<const R: usize, const C: usize>(
-    writer: &mut impl Write,
-    grid: &SMatrix<u8, R, C>,
-) -> anyhow::Result<()> {
-    for i in 0..R {
-        let mut buffer: String = (0..C)
+fn write_grid<R, C, S>(writer: &mut impl Write, grid: &Matrix<u8, R, C, S>) -> anyhow::Result<()>
+where
+    R: Dim,
+    C: Dim,
+    S: RawStorage<u8, R, C>,
+{
+    let (nrows, ncols) = grid.shape();
+    for i in 0..nrows {
+        let mut buffer: String = (0..ncols)
             .map(|j| char::from_digit(grid[(i, j)] as u32, 10).unwrap())
             .collect();
         buffer.push('\n');

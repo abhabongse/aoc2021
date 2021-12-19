@@ -256,7 +256,7 @@ where
     where
         T: Sum,
     {
-        GridIndices::new_row_major(R, C)
+        GridIndices::row_major((R, C))
             .filter(|&(i, j)| !self.marks[i][j])
             .map(|(i, j)| self.board.numbers[i][j])
             .sum()

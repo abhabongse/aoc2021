@@ -6,7 +6,7 @@ use std::io::BufRead;
 
 use anyhow::Context;
 use itertools::Itertools;
-use nalgebra::{DMatrix, RowDVector};
+use nalgebra::{DMatrix, Dim, Matrix, RawStorage, RowDVector};
 
 use aoc2021::argparser;
 use aoc2021::grid::{orth_adjacent, GridIndices};
@@ -18,10 +18,9 @@ fn main() {
     let Input { heightmap } = Input::from_buffer(input_reader).expect("cannot parse input");
 
     // Find all low points in the heightmap
-    let (rows, cols) = heightmap.shape();
-    let low_points: Vec<_> = GridIndices::new_row_major(rows, cols)
+    let low_points: Vec<_> = GridIndices::row_major(heightmap.shape())
         .filter(|&pos| {
-            orth_adjacent(pos, (rows, cols))
+            orth_adjacent(pos, heightmap.shape())
                 .into_iter()
                 .all(|other_pos| heightmap[pos] < heightmap[other_pos])
         })
@@ -69,7 +68,12 @@ impl Input {
 
 /// Uses breadth-first search to find the basin
 /// whose low point is the same as given in the function parameter.
-fn basin_size(low_point: (usize, usize), heightmap: &DMatrix<i64>) -> usize {
+fn basin_size<R, C, S>(low_point: (usize, usize), heightmap: &Matrix<i64, R, C, S>) -> usize
+where
+    R: Dim,
+    C: Dim,
+    S: RawStorage<i64, R, C>,
+{
     let shape = heightmap.shape();
     let mut queue = VecDeque::from([low_point]);
     let mut visited = HashSet::from([low_point]);
