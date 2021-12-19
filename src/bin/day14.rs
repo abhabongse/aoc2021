@@ -10,8 +10,8 @@ use lazy_static::lazy_static;
 use regex::Regex;
 
 use aoc2021::argparser;
+use aoc2021::collect_array::CollectArray;
 use aoc2021::quickparse::QuickParse;
-use aoc2021::try_collect::TryCollectArray;
 
 /// Main program
 fn main() {
@@ -108,8 +108,8 @@ impl FromStr for InsertionRule {
         let captures = RE
             .captures(s)
             .with_context(|| format!("invalid insertion rule: {}", s))?;
-        let [fst, snd] = captures[1].chars().try_collect_exact_array()?;
-        let [insert_char] = captures[2].chars().try_collect_exact_array()?;
+        let [fst, snd] = captures[1].chars().collect_exact_array()?;
+        let [insert_char] = captures[2].chars().collect_exact_array()?;
         let pattern = (fst, snd);
         Ok(InsertionRule {
             pattern,

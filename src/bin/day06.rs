@@ -3,8 +3,7 @@
 use std::io::BufRead;
 
 use anyhow::Context;
-// TODO: Stop using nalgebra, use homegrown grid
-use nalgebra::{matrix, vector, SVector};
+use nalgebra::{matrix, SVector};
 
 use aoc2021::argparser;
 use aoc2021::quickparse::QuickParse;
@@ -17,6 +16,7 @@ fn main() {
 
     // Initialize fish counts by their attributes
     let init_counts = count_fishes_by_attr(fish_attrs.as_slice()).expect("invalid fish attributes");
+
     // Transformation matrix representing how fish reproduces
     let trans_mat = matrix![
         0, 1, 0, 0, 0, 0, 0, 0, 0;
@@ -33,7 +33,7 @@ fn main() {
     // Part 1: fish counting after 80 days
     let p1_total_fish = {
         let fish_counts = (0..80).fold(init_counts, |v, _| trans_mat * v);
-        fish_counts.dot(&vector![1, 1, 1, 1, 1, 1, 1, 1, 1])
+        fish_counts.sum()
     };
     println!("Part 1 answer: {}", p1_total_fish);
 
@@ -42,7 +42,7 @@ fn main() {
     // if the number of days happened to be much larger than this.
     let p2_total_fish = {
         let fish_counts = (0..256).fold(init_counts, |v, _| trans_mat * v);
-        fish_counts.dot(&vector![1, 1, 1, 1, 1, 1, 1, 1, 1])
+        fish_counts.sum()
     };
     println!("Part 2 answer: {}", p2_total_fish);
 }
@@ -73,14 +73,12 @@ impl Input {
 /// I did not use [`Itertools::counts`] since I want to be able to detect out-of-bounds indexing.
 ///
 /// [`Itertools::counts`]: https://docs.rs/itertools/0.10.3/itertools/trait.Itertools.html#method.counts
-fn count_fishes_by_attr<const MAX_ATTR: usize>(
-    fish_attrs: &[usize],
-) -> anyhow::Result<SVector<u64, MAX_ATTR>> {
-    let mut counts: SVector<u64, MAX_ATTR> = SVector::zeros();
+fn count_fishes_by_attr<const M: usize>(fish_attrs: &[usize]) -> anyhow::Result<SVector<u64, M>> {
+    let mut counts: SVector<u64, M> = SVector::zeros();
     for attr in fish_attrs.iter().copied() {
         let count_mut = counts
             .get_mut(attr)
-            .with_context(|| format!("fish attribute {} exceed limit of {}", attr, MAX_ATTR - 1))?;
+            .with_context(|| format!("fish attribute {} exceed limit of {}", attr, M - 1))?;
         *count_mut += 1;
     }
     Ok(counts)

@@ -9,8 +9,8 @@ use lazy_static::lazy_static;
 use regex::Regex;
 
 use aoc2021::argparser;
+use aoc2021::collect_array::CollectArray;
 use aoc2021::quickparse::QuickParse;
-use aoc2021::try_collect::TryCollectArray;
 
 /// Main program
 fn main() {
@@ -60,7 +60,7 @@ impl Input {
             if line.trim().is_empty() {
                 break;
             }
-            let [x, y] = line.split(',').try_collect_exact_array()?;
+            let [x, y] = line.split(',').collect_exact_array()?;
             dots.push(Point {
                 x: x.trim().quickparse()?,
                 y: y.trim().quickparse()?,

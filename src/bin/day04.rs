@@ -13,8 +13,8 @@ use itertools::{iproduct, Itertools};
 use num::PrimInt;
 
 use aoc2021::argparser;
+use aoc2021::collect_array::CollectArray;
 use aoc2021::quickparse::QuickParse;
-use aoc2021::try_collect::TryCollectArray;
 
 /// Main program
 fn main() {
@@ -196,13 +196,12 @@ where
     type Error = anyhow::Error;
 
     fn try_from(numbers: Vec<Vec<T>>) -> Result<Self, Self::Error> {
-        Ok(Board::new({
-            let rows: Vec<[_; C]> = numbers
-                .into_iter()
-                .map(|row| row.into_iter().try_collect_exact_array::<_, C>())
-                .collect::<anyhow::Result<Vec<[_; C]>>>()?;
-            rows.into_iter().try_collect_exact_array()?
-        }))
+        let mut rows = Vec::with_capacity(R);
+        for row in numbers {
+            let row: [_; C] = row.into_iter().collect_exact_array()?;
+            rows.push(row);
+        }
+        Ok(Board::new(rows.into_iter().collect_exact_array()?))
     }
 }
 

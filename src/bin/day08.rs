@@ -9,8 +9,8 @@ use lazy_static::lazy_static;
 use regex::Regex;
 
 use aoc2021::argparser;
+use aoc2021::collect_array::CollectArray;
 use aoc2021::quickparse::QuickParse;
-use aoc2021::try_collect::TryCollectArray;
 
 /// Hand-crafted information to decode toggle patterns into actual integer digits.
 /// In general, it performs an XOR-bitmask-then-count-one-bits test with each pattern.
@@ -167,11 +167,11 @@ impl FromStr for DisplayLog {
         let digit_patterns = (&all_patterns[0..10])
             .iter()
             .copied()
-            .try_collect_exact_array()?;
+            .collect_exact_array()?;
         let display_patterns = (&all_patterns[10..14])
             .iter()
             .copied()
-            .try_collect_exact_array()?;
+            .collect_exact_array()?;
 
         Ok(DisplayLog::new(digit_patterns, display_patterns))
     }

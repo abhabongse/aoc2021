@@ -13,4 +13,3 @@ pub type GridPoint = (usize, usize);
 
 mod fixed_grid;
 mod util;
-mod var_grid;

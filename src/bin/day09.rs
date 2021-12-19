@@ -6,7 +6,6 @@ use std::io::BufRead;
 
 use anyhow::Context;
 use itertools::{iproduct, Itertools};
-// TODO: Stop using nalgebra, use homegrown grid
 use nalgebra::{DMatrix, RowDVector};
 
 use aoc2021::argparser;

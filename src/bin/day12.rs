@@ -7,7 +7,7 @@ use anyhow::Context;
 use itertools::Itertools;
 
 use aoc2021::argparser;
-use aoc2021::try_collect::TryCollectArray;
+use aoc2021::collect_array::CollectArray;
 
 /// Main program
 fn main() {
@@ -79,7 +79,7 @@ impl Input {
         let mut graph = Graph::new();
         for line in reader.lines() {
             let line = line.context("cannot read a line of string")?;
-            let [u, v] = line.trim().split('-').try_collect_exact_array()?;
+            let [u, v] = line.trim().split('-').collect_exact_array()?;
             graph.add_edge(u, v);
             graph.add_edge(v, u);
         }
