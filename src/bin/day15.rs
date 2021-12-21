@@ -74,19 +74,17 @@ where
         if cost > dists.get(&pos).copied().unwrap_or(i64::MAX) {
             continue;
         }
-        orth_adjacent(pos, grid.shape())
-            .into_iter()
-            .for_each(|other_pos| {
-                let next = State {
-                    cost: cost + grid[other_pos],
-                    pos: other_pos,
-                };
-                // eprintln!("{:?} {:?} {:?}", cost, pos, next);
-                if next.cost < dists.get(&next.pos).copied().unwrap_or(i64::MAX) {
-                    pq.push(next);
-                    dists.insert(next.pos, next.cost);
-                }
-            });
+        for other_pos in orth_adjacent(pos, grid.shape()) {
+            let next = State {
+                cost: cost + grid[other_pos],
+                pos: other_pos,
+            };
+            // eprintln!("{:?} {:?} {:?}", cost, pos, next);
+            if next.cost < dists.get(&next.pos).copied().unwrap_or(i64::MAX) {
+                pq.push(next);
+                dists.insert(next.pos, next.cost);
+            }
+        }
     }
     unreachable!()
 }

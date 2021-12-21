@@ -78,12 +78,12 @@ where
     let mut queue = VecDeque::from([low_point]);
     let mut visited = HashSet::from([low_point]);
     while let Some(pos) = queue.pop_front() {
-        orth_adjacent(pos, shape).into_iter().for_each(|other_pos| {
+        for other_pos in orth_adjacent(pos, shape) {
             if heightmap[other_pos] < 9 && !visited.contains(&other_pos) {
                 queue.push_back(other_pos);
                 visited.insert(other_pos);
             }
-        });
+        }
     }
     visited.len()
 }
