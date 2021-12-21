@@ -73,7 +73,7 @@ macro_rules! impl_from_bitvec_for_int {
         impl_from_bitvec_for_int!( $($t:ty),* )
     };
 }
-impl_from_bitvec_for_int!(usize, u8, u16, u32, u64, u128);
+impl_from_bitvec_for_int![usize, u8, u16, u32, u64, u128];
 
 impl Display for BitVec {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
