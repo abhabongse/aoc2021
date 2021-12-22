@@ -25,7 +25,7 @@ struct Input {}
 
 impl Input {
     /// Parses program input from buffered reader.
-    fn from_buffer(reader: impl BufRead) -> anyhow::Result<Self> {
+    fn from_buffer(_reader: impl BufRead) -> anyhow::Result<Self> {
         Ok(Input {})
     }
 }
