@@ -27,4 +27,12 @@ impl InputSrc {
             Self::File(name) => Box::new(io::BufReader::new(std::fs::File::open(name)?)),
         })
     }
+
+    /// Obtains a boxed reader based on the input source.
+    pub fn get_raw_reader(&self) -> anyhow::Result<Box<dyn io::Read>> {
+        Ok(match self {
+            Self::Stdin => Box::new(io::stdin()),
+            Self::File(name) => Box::new(std::fs::File::open(name)?),
+        })
+    }
 }
