@@ -17,8 +17,8 @@ fn main() {
     let mut input_stream = InputStream::new(input_reader);
 
     // Parses the packet from the input stream
-    let (_, packet) = Packet::from_stream(&mut input_stream).expect("cannot parse packet");
-    // eprintln!("{:?}", packet);
+    let packet = Packet::from_stream(&mut input_stream).expect("cannot parse packet");
+    eprintln!("{:?}", packet);
 
     // Part 1: Sum of version values of all packets
     let p1_answer = packet
@@ -37,6 +37,7 @@ type Bit = u8;
 struct InputStream<R: Read> {
     source: std::io::Bytes<R>,
     buffer: VecDeque<Bit>,
+    bits_read: usize,
 }
 
 impl<R: Read> InputStream<R> {
@@ -45,6 +46,7 @@ impl<R: Read> InputStream<R> {
         InputStream {
             source: reader.bytes(),
             buffer: VecDeque::with_capacity(4),
+            bits_read: 0,
         }
     }
 
@@ -73,6 +75,7 @@ impl<R: Read> Iterator for InputStream<R> {
             };
             self.buffer = VecDeque::from(bits);
         }
+        self.bits_read += 1;
         self.buffer.pop_front().map(Ok)
     }
 }
@@ -88,15 +91,14 @@ impl Packet {
     /// Parses the packet by consuming from the [`InputStream`].
     /// If successful, this method returns the number of bits read from the stream
     /// as well as the packet object itself.
-    fn from_stream<R: Read>(stream: &mut InputStream<R>) -> anyhow::Result<(usize, Self)> {
+    fn from_stream<R: Read>(stream: &mut InputStream<R>) -> anyhow::Result<Self> {
         let version = decimal_from_bits(stream.fetch::<3>()?.as_slice());
         let type_id = decimal_from_bits(stream.fetch::<3>()?.as_slice());
-        let (nbits_read, payload) = match type_id {
+        let payload = match type_id {
             4 => Payload::parse_literal(stream)?,
             _ => Payload::parse_ops(stream, Operator::new(type_id)?)?,
         };
-        let packet = Packet { version, payload };
-        Ok((nbits_read + 6, packet))
+        Ok(Packet { version, payload })
     }
 
     /// Evaluates the expression described by the packet.
@@ -118,6 +120,8 @@ impl Packet {
     /// based on the following two input arguments:
     /// -  The packet itself, and
     /// -  The slice of reduced values from each subpacket.
+    ///
+    /// TODO: Introduce the fallible version of this method (named `try_reduce`)
     fn reduce<T, F>(&self, func: &F) -> T
     where
         F: Fn(&Self, &[T]) -> T,
@@ -141,34 +145,29 @@ enum Payload {
 
 impl Payload {
     /// Parses [`Payload::Literal`] by consuming the next few bits from the stream.
-    fn parse_literal<R: Read>(stream: &mut InputStream<R>) -> anyhow::Result<(usize, Payload)> {
+    fn parse_literal<R: Read>(stream: &mut InputStream<R>) -> anyhow::Result<Payload> {
         let mut bits = Vec::new();
-        let mut nbits_read = 0;
         loop {
             let batch: [_; 5] = stream.fetch()?;
-            nbits_read += 5;
             bits.extend(&mut batch[1..5].iter());
             if batch[0] == 0 {
                 break;
             }
         }
-        let payload = Payload::Literal(decimal_from_bits(bits.as_slice()));
-        Ok((nbits_read, payload))
+        let value = decimal_from_bits(bits.as_slice());
+        Ok(Payload::Literal(value))
     }
 
     /// Parses [`Payload::Operation`] by consuming the next few bits from the stream.
     /// This method dispatches to subroutine depending on the length type ID being read next.
-    fn parse_ops<R: Read>(
-        stream: &mut InputStream<R>,
-        op: Operator,
-    ) -> anyhow::Result<(usize, Payload)> {
+    fn parse_ops<R: Read>(stream: &mut InputStream<R>, op: Operator) -> anyhow::Result<Payload> {
         let [length_type_id] = stream.fetch()?;
-        let (nbits_read, children) = match length_type_id {
+        let children = match length_type_id {
             0 => Payload::parse_children_by_bit_length(stream)?,
             1 => Payload::parse_children_by_packet_count(stream)?,
             _ => unreachable!(),
         };
-        Ok((nbits_read + 1, Payload::Operation(op, children)))
+        Ok(Payload::Operation(op, children))
     }
 
     /// Parses [`Payload::Operation`] by consuming the next few bits from the stream,
@@ -176,22 +175,20 @@ impl Payload {
     /// Hence, the next 15 bits indicate the total length in bits of sub-packets, etc.
     fn parse_children_by_bit_length<R: Read>(
         stream: &mut InputStream<R>,
-    ) -> anyhow::Result<(usize, Vec<Packet>)> {
+    ) -> anyhow::Result<Vec<Packet>> {
         let target_length: usize = decimal_from_bits(stream.fetch::<15>()?.as_slice());
-        let mut nbits_read = 0;
+        let count_start = stream.bits_read;
         let mut children = Vec::new();
-        while nbits_read < target_length {
-            let (nbits_more, subpacket) = Packet::from_stream(stream)?;
-            nbits_read += nbits_more;
-            children.push(subpacket);
+        while stream.bits_read < count_start + target_length {
+            children.push(Packet::from_stream(stream)?);
         }
         ensure!(
-            nbits_read == target_length,
+            stream.bits_read == count_start + target_length,
             "too many bits read while parsing subpackets: {} > {}",
-            nbits_read,
+            stream.bits_read - count_start,
             target_length
         );
-        Ok((nbits_read + 15, children))
+        Ok(children)
     }
 
     /// Parses [`Payload::Operation`] by consuming the next few bits from the stream,
@@ -199,16 +196,11 @@ impl Payload {
     /// Hence, the next 11 bits indicate the number of sub-packets.
     fn parse_children_by_packet_count<R: Read>(
         stream: &mut InputStream<R>,
-    ) -> anyhow::Result<(usize, Vec<Packet>)> {
+    ) -> anyhow::Result<Vec<Packet>> {
         let subpacket_count: usize = decimal_from_bits(stream.fetch::<11>()?.as_slice());
-        let mut nbits_read = 0;
-        let mut children = Vec::with_capacity(subpacket_count);
-        for _ in 0..subpacket_count {
-            let (nbits_more, subpacket) = Packet::from_stream(stream)?;
-            nbits_read += nbits_more;
-            children.push(subpacket);
-        }
-        Ok((nbits_read + 11, children))
+        (0..subpacket_count)
+            .map(|_| Packet::from_stream(stream))
+            .collect()
     }
 }
 
