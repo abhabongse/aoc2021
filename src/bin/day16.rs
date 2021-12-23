@@ -1,4 +1,4 @@
-//! Day N: PROBLEM NAME, Advent of Code 2021  
+//! Day 16: Packet Decoder, Advent of Code 2021  
 //! <https://adventofcode.com/2021/day/N>
 use std::collections::VecDeque;
 use std::io::Read;
