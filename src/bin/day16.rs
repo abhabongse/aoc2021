@@ -102,6 +102,12 @@ impl Packet {
     }
 
     /// Evaluates the expression described by the packet.
+    ///
+    /// # Implementation Note
+    /// This method did not utilize [`Packet::reduce`] for two main reasons:
+    /// -  [`Packet::reduce`] did not provide short-circuiting,
+    ///    especially in cases when fallible result could happen
+    /// -  This method reflects the original purpose of the existence of the [`Packet`]
     fn eval(&self) -> anyhow::Result<u64> {
         match &self.payload {
             Payload::Literal(value) => Ok(*value),
@@ -120,8 +126,6 @@ impl Packet {
     /// based on the following two input arguments:
     /// -  The packet itself, and
     /// -  The slice of reduced values from each subpacket.
-    ///
-    /// TODO: Introduce the fallible version of this method (named `try_reduce`)
     fn reduce<T, F>(&self, func: &F) -> T
     where
         F: Fn(&Self, &[T]) -> T,
