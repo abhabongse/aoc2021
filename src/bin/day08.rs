@@ -184,10 +184,10 @@ fn pattern_from_scribbles<T: AsRef<str>>(scribbles: T) -> anyhow::Result<u8> {
     for c in scribbles.as_ref().chars() {
         let pos = match c {
             'a'..='g' => c as u32 - 'a' as u32,
-            _ => bail!("invalid character: {}", c),
+            _ => bail!("invalid character: {}", c.escape_default()),
         };
         let mask = 1 << pos;
-        ensure!((pattern & mask) == 0, "duplicated character: {}", c);
+        ensure!((pattern & mask) == 0, "duplicated character: '{}'", c);
         pattern |= mask;
     }
     Ok(pattern)

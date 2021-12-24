@@ -93,9 +93,9 @@ impl FromStr for BitVec {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut inner = Vec::new();
         for c in s.trim().chars() {
-            let d = c
-                .to_digit(2)
-                .with_context(|| format!("invalid character in bit string: {}", c))?;
+            let d = c.to_digit(2).with_context(|| {
+                format!("invalid character in bit string: '{}'", c.escape_default())
+            })?;
             inner.push(d != 0);
         }
         Ok(BitVec(inner))

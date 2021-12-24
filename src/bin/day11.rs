@@ -65,7 +65,7 @@ impl Input {
             for c in line?.trim().chars() {
                 let d = c
                     .to_digit(10)
-                    .with_context(|| format!("unrecognized digit: {}", c))?;
+                    .with_context(|| format!("unrecognized digit: '{}'", c.escape_default()))?;
                 row_elements.push(d as u8);
             }
             elements.push(row_elements.into_iter().collect_exact_array()?);

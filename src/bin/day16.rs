@@ -1,5 +1,5 @@
 //! Day 16: Packet Decoder, Advent of Code 2021  
-//! <https://adventofcode.com/2021/day/N>
+//! <https://adventofcode.com/2021/day/16>
 use std::collections::VecDeque;
 use std::io::Read;
 
@@ -18,7 +18,6 @@ fn main() {
 
     // Parses the packet from the input stream
     let packet = Packet::from_stream(&mut input_stream).expect("cannot parse packet");
-    eprintln!("{:?}", packet);
 
     // Part 1: Sum of version values of all packets
     let p1_answer = packet
@@ -275,7 +274,7 @@ fn bits_from_hex(c: char) -> anyhow::Result<[Bit; 4]> {
     let decimal = c
         .to_digit(16)
         .map(|d| d as u8)
-        .with_context(|| format!("not a hexadecimal character: {:?}", c))?;
+        .with_context(|| format!("not a hexadecimal character: '{}'", c.escape_default()))?;
     Ok([
         (0b1000 & decimal) / 0b1000,
         (0b0100 & decimal) / 0b0100,

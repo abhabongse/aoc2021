@@ -53,10 +53,12 @@ impl Input {
         for line in reader.lines() {
             let mut row_elements = Vec::new();
             for c in line?.trim().chars() {
-                let d = c
-                    .to_digit(10)
-                    .with_context(|| format!("invalid character in decimal string: {}", c))?
-                    as i64;
+                let d = c.to_digit(10).with_context(|| {
+                    format!(
+                        "invalid character in decimal string: '{}'",
+                        c.escape_default()
+                    )
+                })? as i64;
                 row_elements.push(d)
             }
             elements.push(RowDVector::from_vec(row_elements));
