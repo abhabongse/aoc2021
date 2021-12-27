@@ -28,8 +28,13 @@ fn main() {
     };
     println!("Part 1 answer: {}", p1_answer);
 
-    // Part 2: TODO
-    let p2_answer = 0;
+    // Part 2: Count all possible trajectories
+    let p2_answer = {
+        let (vx_range, vy_range) = velocity_ranges.as_range_inclusive();
+        iproduct!(vx_range, vy_range)
+            .filter(|&(vx, vy)| test_simulate(target, vx, vy))
+            .count()
+    };
     println!("Part 2 answer: {}", p2_answer);
 }
 
