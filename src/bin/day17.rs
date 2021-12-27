@@ -1,13 +1,13 @@
 //! Day 17: Trick Shot, Advent of Code 2021  
 //! <https://adventofcode.com/2021/day/17>
-use std::fmt::{Display, Formatter};
+use std::fmt::Display;
 use std::io::BufRead;
-use std::ops::Neg;
+use std::ops::RangeInclusive;
 
-use anyhow::{bail, Context};
+use anyhow::{ensure, Context};
 use itertools::iproduct;
 use lazy_static::lazy_static;
-use num::{PrimInt, Signed};
+use num::PrimInt;
 use regex::Regex;
 
 use aoc2021::argparser;
@@ -16,15 +16,17 @@ use aoc2021::argparser;
 fn main() {
     let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
     let input_reader = input_src.get_reader().expect("cannot open file");
-    let Input { target_x, target_y } =
-        Input::from_buffer(input_reader).expect("cannot parse input");
+    let Input { target } = Input::from_buffer(input_reader).expect("cannot parse input");
+
+    // Obtains the feasible velocities for the probe to be able to hit the target
+    let velocity_ranges = feasible_velocities(target).expect("unbounded feasible velocities");
 
     // Part 1: Highest point while hitting the testing range
     let p1_answer = {
-        let (_, vy) = test_highest_probe(target_x, target_y);
-        peak_distance(vy.unwrap())
+        let (_, vy) = solve_highest_peak(target, velocity_ranges);
+        peak_distance(vy)
     };
-    println!("Part 1 answer: {:?}", p1_answer);
+    println!("Part 1 answer: {}", p1_answer);
 
     // Part 2: TODO
     let p2_answer = 0;
@@ -34,8 +36,7 @@ fn main() {
 /// Program input data
 #[derive(Debug, Clone)]
 struct Input {
-    target_x: IntRange<i64>,
-    target_y: IntRange<i64>,
+    target: Rect<i64>,
 }
 
 impl Input {
@@ -54,135 +55,114 @@ impl Input {
         let captures = RE
             .captures(line.as_str())
             .with_context(|| format!("invalid line input: {}", line))?;
-        let target_x = IntRange::new(captures[1].parse()?, captures[2].parse()?)?;
-        let target_y = IntRange::new(captures[3].parse()?, captures[4].parse()?)?;
-        Ok(Input { target_x, target_y })
+        let target = Rect::new(
+            captures[4].parse()?,
+            captures[2].parse()?,
+            captures[3].parse()?,
+            captures[1].parse()?,
+        )?;
+        Ok(Input { target })
     }
 }
 
-/// Represents the range of integer coordinates on an axis.
+/// Represents a bounded rectangular area
 #[derive(Debug, Clone, Copy)]
-struct IntRange<T> {
-    /// Inclusive lower bound of the range
-    lower: T,
-    /// Inclusive upper bound of the range
-    upper: T,
+struct Rect<T> {
+    /// Inclusive lower bound on (horizontal) x-value
+    horz_lower: T,
+    /// Inclusive upper bound on (horizontal) x-value
+    horz_upper: T,
+    /// Inclusive lower bound on (vertical) y-value
+    vert_lower: T,
+    /// Inclusive upper bound on (vertical) y-value
+    vert_upper: T,
 }
 
-impl<T> IntRange<T> {
-    /// Constructs a new integer range
-    fn new(lower: T, upper: T) -> anyhow::Result<Self>
+impl<T> Rect<T> {
+    /// Construct a new bounded rectangular area
+    fn new(vert_upper: T, horz_upper: T, vert_lower: T, horz_lower: T) -> anyhow::Result<Self>
     where
         T: PrimInt + Display,
     {
-        if lower > upper {
-            bail!("conflicting range parameter: {} > {}", lower, upper);
-        }
-        Ok(IntRange { lower, upper })
+        ensure!(
+            horz_lower <= horz_upper,
+            "conflicting horizontal range: {} > {}",
+            horz_lower,
+            horz_upper,
+        );
+        ensure!(
+            vert_lower < vert_upper,
+            "conflicting vertical range: {} > {}",
+            vert_lower,
+            vert_upper,
+        );
+        Ok(Rect {
+            horz_lower,
+            horz_upper,
+            vert_lower,
+            vert_upper,
+        })
     }
 
-    /// Checks whether the given point lies within the range.
-    fn contains(&self, point: T) -> bool
+    /// Obtains the rectangle area as a pair of horizontal and vertical [`RangeInclusive`]
+    fn as_range_inclusive(&self) -> (RangeInclusive<T>, RangeInclusive<T>)
     where
         T: PrimInt,
     {
-        self.lower <= point && point <= self.upper
+        let horz_range = RangeInclusive::new(self.horz_lower, self.horz_upper);
+        let vert_range = RangeInclusive::new(self.vert_lower, self.vert_upper);
+        (horz_range, vert_range)
+    }
+
+    /// Whether the rectangle area contains the given point
+    fn contains(&self, x: T, y: T) -> bool
+    where
+        T: PrimInt,
+    {
+        self.horz_lower <= x && x <= self.horz_upper && self.vert_lower <= y && y <= self.vert_upper
     }
 }
 
-impl<T> Neg for IntRange<T>
-where
-    T: Signed,
-{
-    type Output = Self;
-
-    fn neg(self) -> Self::Output {
-        IntRange {
-            lower: -self.upper,
-            upper: -self.lower,
-        }
-    }
-}
-
-impl<T> Display for IntRange<T>
-where
-    T: Display,
-{
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[{}, {}]", self.lower, self.upper)
-    }
-}
-
-/// Performs multiple probing test: finds the starting velocity that would hit the target range
-/// as well as vertically reaching the highest point possible.
-/// If the optimal velocity is unbounded, then `None` is returned.
-fn test_highest_probe(target_x: IntRange<i64>, target_y: IntRange<i64>) -> (i64, Option<i64>) {
-    // Make sure that target x-range lies inside positive half-space
-    let (sign_x, target_x) = match target_x {
-        IntRange { lower, upper: _ } if lower > 0 => (1, target_x),
-        IntRange { lower: _, upper } if upper < 0 => (-1, -target_x),
-        _ => {
-            // Special case: if the target x-range overlaps the line `x = 0`
-            // then we only need to worry about y-velocity
-            return (0, max_y_velocity_to_hit(target_y));
-        }
+/// Calculates the tight bound for integer-value, feasible starting velocities
+/// for the probe which would eventually hit the specified rectangular target.
+/// Bounds for horizontal and vertical velocities are determined independently.
+/// If the solution is unbounded, then this function would return `None` instead.
+fn feasible_velocities(target: Rect<i64>) -> Option<Rect<i64>> {
+    // Compute the tight bound for x-velocity search space
+    let (vx_lower, vx_upper) = if target.horz_lower > 0 {
+        (min_velocity_to_reach(target.horz_lower), target.horz_upper)
+    } else if target.horz_upper < 0 {
+        (
+            target.horz_lower,
+            -min_velocity_to_reach(-target.horz_upper),
+        )
+    } else {
+        (target.horz_lower, target.horz_upper)
     };
 
-    // Tight bound on x-velocity search space
-    let vx_range = {
-        let vx_min = min_velocity_to_reach(target_x.lower);
-        let vx_max = target_x.upper;
-        vx_min..=vx_max
+    // Compute the tight bound for y-velocity search space
+    let (vy_lower, vy_upper) = if target.vert_lower > 0 {
+        // Case 1: Target rectangle is above the level `y = 0`
+        (min_velocity_to_reach(target.vert_lower), target.vert_upper)
+    } else if target.vert_upper < 0 {
+        // Case 2: Target rectangle is below the level `y = 0`
+        (target.vert_lower, target.vert_lower.abs() - 1)
+    } else {
+        // Case 3: Target rectangle overlaps the level `y = 0`
+        // Hence, we need to rule out sub-cases where y-velocity can be unbounded
+        if target.horz_lower <= 0 && 0 <= target.horz_upper {
+            return None;
+        }
+        let x_abs_lower = i64::min(target.horz_lower.abs(), target.horz_upper.abs());
+        let x_abs_upper = i64::max(target.horz_lower.abs(), target.horz_upper.abs());
+        if peak_distance(min_velocity_to_reach(x_abs_lower)) <= x_abs_upper {
+            return None;
+        }
+        let vy_upper = i64::max(target.horz_upper, target.horz_lower.abs() - 1);
+        (target.horz_lower, vy_upper)
     };
 
-    // Tight bound on y-velocity search space
-    let vy_range = match target_y {
-        // Case 1: Target is definitely above the level `y = 0`
-        IntRange { lower, upper } if lower > 0 => {
-            let vy_min = min_velocity_to_reach(lower);
-            let vy_max = upper;
-            vy_min..=vy_max
-        }
-        // Case 2: Target is definitely below the level `y = 0`
-        IntRange { lower, upper } if upper < 0 => {
-            let vy_min = lower;
-            let vy_max = lower.abs() - 1;
-            vy_min..=vy_max
-        }
-        // Case 3: Target overlaps the level `y = 0`
-        IntRange { lower, upper } => {
-            // Special case: make sure to rule out cases
-            // when vertical velocity is unbounded right away
-            let vx = min_velocity_to_reach(target_x.lower);
-            if target_x.contains(peak_distance(vx)) {
-                return (sign_x * vx, None);
-            }
-            let vy_min = lower;
-            let vy_max = i64::max(upper, lower.abs() - 1);
-            vy_min..=vy_max
-        }
-    };
-
-    // Search with largest y-velocity first since it would reach a higher peak.
-    // Note: A lot of optimizations can be done here,
-    // but the code would have got too complicated.
-    for (vy, vx) in iproduct!(vy_range.rev(), vx_range.rev()) {
-        if simulate(target_x, target_y, vx, vy) {
-            return (sign_x * vx, Some(vy));
-        }
-    }
-    panic!("some calculation bug happens")
-}
-
-/// Maximum vertical (y-) velocity that would hit the target range.
-/// If the target range contains the point `y = 0` then any unbounded velocity would work,
-/// and thus `None` would be returned in such case.
-fn max_y_velocity_to_hit(target: IntRange<i64>) -> Option<i64> {
-    match target {
-        IntRange { lower, upper } if lower > 0 => Some(upper),
-        IntRange { lower, upper } if upper < 0 => Some(lower.abs() - 1),
-        _ => None,
-    }
+    Some(Rect::new(vy_upper, vx_upper, vy_lower, vx_lower).unwrap())
 }
 
 /// Minimum velocity required to at least reach a certain (positive) distance.
@@ -198,17 +178,29 @@ fn peak_distance(start_velocity: i64) -> i64 {
     start_velocity * (start_velocity + 1) / 2
 }
 
+/// Finds a starting velocity within the feasible bound that would lead to the probe hitting the target
+/// while also reaching the highest peak vertically possible.
+fn solve_highest_peak(target: Rect<i64>, velocity_range: Rect<i64>) -> (i64, i64) {
+    let (vx_range, vy_range) = velocity_range.as_range_inclusive();
+    for (vy, vx) in iproduct!(vy_range.rev(), vx_range.rev()) {
+        if test_simulate(target, vx, vy) {
+            return (vx, vy);
+        }
+    }
+    panic!("no feasible velocity")
+}
+
 /// Runs the simulation to see whether the provided x- and y-velocity
 /// would make the probe hit the target within the specified range.
-fn simulate(target_x: IntRange<i64>, target_y: IntRange<i64>, mut vx: i64, mut vy: i64) -> bool {
+fn test_simulate(target: Rect<i64>, mut vx: i64, mut vy: i64) -> bool {
     let mut x = 0;
     let mut y = 0;
-    while vy >= 0 || y > target_y.lower {
+    while vy >= 0 || y > target.vert_lower {
         x += vx;
         y += vy;
         vx -= vx.signum();
         vy -= 1;
-        if target_x.contains(x) && target_y.contains(y) {
+        if target.contains(x, y) {
             return true;
         }
     }
