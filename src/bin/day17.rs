@@ -5,6 +5,7 @@ use std::io::BufRead;
 use std::ops::Neg;
 
 use anyhow::{bail, Context};
+use itertools::iproduct;
 use lazy_static::lazy_static;
 use num::{PrimInt, Signed};
 use regex::Regex;
@@ -123,16 +124,18 @@ fn test_highest_probe(target_x: IntRange<i64>, target_y: IntRange<i64>) -> (i64,
         _ => {
             // Special case: if the target x-range overlaps the line `x = 0`
             // then we only need to worry about y-velocity
-            return (0, max_vertical_velocity_to_hit(target_y));
+            return (0, max_y_velocity_to_hit(target_y));
         }
     };
 
+    // Tight bound on x-velocity search space
     let vx_range = {
         let vx_min = min_velocity_to_reach(target_x.lower);
         let vx_max = target_x.upper;
         vx_min..=vx_max
     };
 
+    // Tight bound on y-velocity search space
     let vy_range = match target_y {
         // Case 1: Target is definitely above the level `y = 0`
         IntRange { lower, upper } if lower > 0 => {
@@ -148,7 +151,8 @@ fn test_highest_probe(target_x: IntRange<i64>, target_y: IntRange<i64>) -> (i64,
         }
         // Case 3: Target overlaps the level `y = 0`
         IntRange { lower, upper } => {
-            // Make sure to rule out cases when vertical velocity is unbounded right away
+            // Special case: make sure to rule out cases
+            // when vertical velocity is unbounded right away
             let vx = min_velocity_to_reach(target_x.lower);
             if target_x.contains(peak_distance(vx)) {
                 return (sign_x * vx, None);
@@ -159,14 +163,21 @@ fn test_highest_probe(target_x: IntRange<i64>, target_y: IntRange<i64>) -> (i64,
         }
     };
 
-    println!("vx in {:?}, vy in {:?}", vx_range, vy_range);
-    todo!()
+    // Search with largest y-velocity first since it would reach a higher peak.
+    // Note: A lot of optimizations can be done here,
+    // but the code would have got too complicated.
+    for (vy, vx) in iproduct!(vy_range.rev(), vx_range.rev()) {
+        if simulate(target_x, target_y, vx, vy) {
+            return (sign_x * vx, Some(vy));
+        }
+    }
+    panic!("some calculation bug happens")
 }
 
 /// Maximum vertical (y-) velocity that would hit the target range.
 /// If the target range contains the point `y = 0` then any unbounded velocity would work,
 /// and thus `None` would be returned in such case.
-fn max_vertical_velocity_to_hit(target: IntRange<i64>) -> Option<i64> {
+fn max_y_velocity_to_hit(target: IntRange<i64>) -> Option<i64> {
     match target {
         IntRange { lower, upper } if lower > 0 => Some(upper),
         IntRange { lower, upper } if upper < 0 => Some(lower.abs() - 1),
@@ -175,6 +186,7 @@ fn max_vertical_velocity_to_hit(target: IntRange<i64>) -> Option<i64> {
 }
 
 /// Minimum velocity required to at least reach a certain (positive) distance.
+/// This functions provides a tighter lower bound for velocity search space than just velocity 0.
 fn min_velocity_to_reach(dist: i64) -> i64 {
     assert!(dist >= 0);
     ((2.0 * (dist as f64) + 0.25).sqrt() - 0.5).ceil() as i64
@@ -184,4 +196,21 @@ fn min_velocity_to_reach(dist: i64) -> i64 {
 fn peak_distance(start_velocity: i64) -> i64 {
     assert!(start_velocity >= 0);
     start_velocity * (start_velocity + 1) / 2
+}
+
+/// Runs the simulation to see whether the provided x- and y-velocity
+/// would make the probe hit the target within the specified range.
+fn simulate(target_x: IntRange<i64>, target_y: IntRange<i64>, mut vx: i64, mut vy: i64) -> bool {
+    let mut x = 0;
+    let mut y = 0;
+    while vy >= 0 || y > target_y.lower {
+        x += vx;
+        y += vy;
+        vx -= vx.signum();
+        vy -= 1;
+        if target_x.contains(x) && target_y.contains(y) {
+            return true;
+        }
+    }
+    false
 }
