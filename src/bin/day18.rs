@@ -2,8 +2,10 @@
 //! <https://adventofcode.com/2021/day/18>
 use std::fmt::{Debug, Formatter};
 use std::io::BufRead;
+use std::ops::Add;
 
 use anyhow::anyhow;
+use itertools::Itertools;
 use lazy_static::lazy_static;
 
 use aoc2021::argparser;
@@ -21,9 +23,13 @@ fn main() {
 
     // Part 1: Add and reduce numbers
     let p1_answer = {
-        let numbers: Vec<_> = numbers.iter().map(|n| SerialSnailfish::from(n)).collect();
-        eprintln!("{:?}", numbers);
-        0
+        let result = numbers
+            .iter()
+            .map(SerialSnailfish::from)
+            .fold1(|ref acc, ref n| (acc + n).into_reduced())
+            .expect("empty seq of numbers");
+        eprintln!("{:?}", result);
+        result.magnitude()
     };
     println!("Part 1 answer: {}", p1_answer);
 
@@ -56,6 +62,30 @@ impl Input {
 
 #[derive(Debug, Clone)]
 struct SerialSnailfish(Vec<Element>);
+
+impl SerialSnailfish {
+    /// Obtains the reduced form of itself.
+    fn into_reduced(self) -> Self {
+        todo!()
+    }
+
+    /// Magnitude of the snailfish
+    fn magnitude(&self) -> i64 {
+        todo!()
+    }
+}
+
+impl Add<&SerialSnailfish> for &SerialSnailfish {
+    type Output = SerialSnailfish;
+
+    fn add(self, rhs: &SerialSnailfish) -> Self::Output {
+        let mut result = Vec::from([Element::IncLevel]);
+        result.extend_from_slice(self.0.as_slice());
+        result.extend_from_slice(rhs.0.as_slice());
+        result.push(Element::DecLevel);
+        SerialSnailfish(result)
+    }
+}
 
 impl From<&Node> for SerialSnailfish {
     fn from(tree: &Node) -> Self {
