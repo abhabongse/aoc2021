@@ -1,24 +1,13 @@
 use std::str::FromStr;
+use crate::snailfish::Node;
 
 grammar;
 
-pub Expr: i32 = {
-    <l:Expr> "+" <r:Factor> => l + r,
-    <l:Expr> "-" <r:Factor> => l - r,
-    Factor,
+pub Expr: Node = {
+    "[" <l:Expr> "," <r:Expr> "]" => Node::new_branch(l, r),
+    Num => Node::new_leaf(<>),
 };
 
-Factor: i32 = {
-    <l:Factor> "*" <r:Term> => l * r,
-    <l:Factor> "/" <r:Term> => l / r,
-    Term,
-};
-
-Term: i32 = {
-    Num,
-    "(" <Expr> ")",
-};
-
-Num: i32 = {
-    r"[0-9]+" => i32::from_str(<>).unwrap(),
+Num: i64 = {
+    r"[0-9]+" => i64::from_str(<>).unwrap(),
 };

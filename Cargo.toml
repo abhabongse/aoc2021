@@ -14,6 +14,7 @@ publish = false
 anyhow = "1.0"
 cgmath = "0.18"
 euclid = "0.22.6"
+generator = "0.7.0"
 itertools = "0.10.0"
 lalrpop-util = { version = "0.19.6", features = ["lexer"] }
 lazy_static = "1.4.0"

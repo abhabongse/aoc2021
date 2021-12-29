@@ -1,3 +1,4 @@
+//! Provides Snailfish number parser for Advent of Code Day 18.
 use lalrpop_util::lalrpop_mod;
 
 pub use snailfish_syntax::ExprParser;
@@ -7,3 +8,22 @@ lalrpop_mod!(
     #[allow(unused)]
     snailfish_syntax
 );
+
+/// Node in a snailfish number
+#[derive(Debug, Clone)]
+pub enum Node {
+    Branch(Box<Node>, Box<Node>),
+    Leaf(i64),
+}
+
+impl Node {
+    /// Creates a new branching node
+    fn new_branch(left: Node, right: Node) -> Self {
+        Node::Branch(Box::new(left), Box::new(right))
+    }
+
+    /// Creates a new leaf node
+    fn new_leaf(value: i64) -> Self {
+        Node::Leaf(value)
+    }
+}
