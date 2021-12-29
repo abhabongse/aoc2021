@@ -5,8 +5,8 @@ use anyhow::{anyhow, ensure};
 
 /// Trait extension for [`Iterator`] trait which add two of the following methods
 /// to collect items from an iterator into a constant-sized array:
-/// -  [`try_collect_exact_array`](TryCollectArray::try_collect_exact_array)
-/// -  [`try_collect_trunc_array`](TryCollectArray::try_collect_trunc_array)
+/// -  [`try_collect_exact_array`](CollectArray::collect_exact_array)
+/// -  [`try_collect_trunc_array`](CollectArray::collect_trunc_array)
 pub trait CollectArray: Iterator {
     /// Collects all items from the iterator into a constant-sized array.
     /// Too few or too many items produced will result in an error.
