@@ -7,10 +7,10 @@ use anyhow::anyhow;
 use lazy_static::lazy_static;
 
 use aoc2021::argparser;
-use aoc2021::snailfish::{ExprParser, Node};
+use aoc2021::snailfish::{Node, SnailfishParser};
 
 lazy_static! {
-    static ref EXPR_PARSER: ExprParser = ExprParser::new();
+    static ref PARSER: SnailfishParser = SnailfishParser::new();
 }
 
 /// Main program
@@ -45,7 +45,7 @@ impl Input {
         for line in reader.lines() {
             let line = line?;
             numbers.push(
-                EXPR_PARSER
+                PARSER
                     .parse(line.as_str())
                     .map_err(|_| anyhow!("cannot parse line: '{}'", line.escape_default()))?,
             )

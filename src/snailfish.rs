@@ -1,7 +1,7 @@
 //! Provides Snailfish number parser for Advent of Code Day 18.
 use lalrpop_util::lalrpop_mod;
 
-pub use snailfish_syntax::ExprParser;
+pub use snailfish_syntax::ExprParser as SnailfishParser;
 
 lalrpop_mod!(
     #[allow(clippy::all)]
