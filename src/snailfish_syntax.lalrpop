@@ -4,8 +4,8 @@ use crate::snailfish::Node;
 grammar;
 
 pub Expr: Node = {
-    "[" <l:Expr> "," <r:Expr> "]" => Node::new_branch(l, r),
-    Num => Node::new_leaf(<>),
+    "[" <l:Expr> "," <r:Expr> "]" => Node::Branch(Box::new(l), Box::new(r)),
+    Num => Node::Leaf(<>),
 };
 
 Num: i64 = {
