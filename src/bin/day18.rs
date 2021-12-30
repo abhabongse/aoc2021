@@ -26,7 +26,7 @@ fn main() {
         let result = numbers
             .iter()
             .map(SerialSnailfish::from)
-            .fold1(|ref acc, ref n| (acc + n).into_reduced())
+            .fold1(|ref acc, ref n| (acc + n).reduce())
             .expect("empty seq of numbers");
         eprintln!("{:?}", result);
         result.magnitude()
@@ -60,13 +60,89 @@ impl Input {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 struct SerialSnailfish(Vec<Element>);
 
 impl SerialSnailfish {
-    /// Obtains the reduced form of itself.
-    fn into_reduced(self) -> Self {
-        todo!()
+    /// Obtains the reduced form of the snailfish itself.
+    fn reduce(&self) -> Self {
+        let mut fish = self.clone();
+        loop {
+            if let Some(exploded_fish) = fish.explode() {
+                fish = exploded_fish;
+                continue;
+            }
+            if let Some(splitted_fish) = fish.split() {
+                fish = splitted_fish;
+                continue;
+            }
+            return fish;
+        }
+    }
+
+    /// Explode the snailfish itself, if possible.
+    fn explode(&self) -> Option<Self> {
+        let mut level: usize = 0;
+        let mut pivot = None;
+        for (pos, elem) in self.0.iter().enumerate() {
+            match elem {
+                Element::IncLevel => level += 1,
+                Element::DecLevel => level -= 1,
+                Element::Value(_) if level >= 5 => {
+                    pivot = Some(pos - 1);
+                    break;
+                }
+                _ => (),
+            }
+        }
+        pivot.map(|pos| {
+            assert_eq!(self.0[pos], Element::IncLevel);
+            let fst = self.0[pos + 1].unwrap_value();
+            let snd = self.0[pos + 2].unwrap_value();
+            assert_eq!(self.0[pos + 3], Element::DecLevel);
+            let mut left_half = self.0[..pos].to_vec();
+            for elem in left_half.iter_mut().rev() {
+                if elem.is_value() {
+                    *elem = elem.map(|v| v + fst);
+                    break;
+                }
+            }
+            let mut right_half = self.0[pos + 4..].to_vec();
+            for elem in right_half.iter_mut() {
+                if elem.is_value() {
+                    *elem = elem.map(|v| v + snd);
+                    break;
+                }
+            }
+            let mut elements = Vec::with_capacity(self.0.len() - 3);
+            elements.append(&mut left_half);
+            elements.push(Element::Value(0));
+            elements.append(&mut right_half);
+            SerialSnailfish(elements)
+        })
+    }
+
+    /// Split the snailfish itself, if possible.
+    fn split(&self) -> Option<Self> {
+        let pivot = self
+            .0
+            .iter()
+            .find_position(|elem| matches!(elem, Element::Value(value) if *value >= 10));
+        pivot.map(|(pos, elem)| {
+            let value = elem.unwrap_value();
+            let fst = value / 2;
+            let snd = value - fst;
+            let mut elements = Vec::with_capacity(self.0.len() + 3);
+            elements.extend_from_slice(&self.0[..pos]);
+            elements.extend([
+                Element::IncLevel,
+                Element::Value(fst),
+                Element::Value(snd),
+                Element::DecLevel,
+            ]);
+            elements.extend_from_slice(&self.0[pos + 1..]);
+            SerialSnailfish(elements)
+        })
     }
 
     /// Magnitude of the snailfish
@@ -106,20 +182,51 @@ impl From<&Node> for SerialSnailfish {
     }
 }
 
+impl Debug for SerialSnailfish {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut prev = Element::IncLevel;
+        for curr in self.0.iter() {
+            if !matches!(prev, Element::IncLevel) && !matches!(curr, Element::DecLevel) {
+                write!(f, ",")?;
+            }
+            match curr {
+                Element::IncLevel => write!(f, "[")?,
+                Element::DecLevel => write!(f, "]")?,
+                Element::Value(value) => write!(f, "{}", value)?,
+            };
+            prev = *curr;
+        }
+        Ok(())
+    }
+}
+
 /// Element of a stack-based serialized representation of snailfish number
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Element {
     IncLevel,
     DecLevel,
     Value(i64),
 }
 
-impl Debug for Element {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+impl Element {
+    fn is_value(self) -> bool {
+        matches!(self, Element::Value(_))
+    }
+
+    fn unwrap_value(self) -> i64 {
         match self {
-            Element::IncLevel => write!(f, "+"),
-            Element::DecLevel => write!(f, "-"),
-            Element::Value(value) => write!(f, "{}", value),
+            Element::Value(value) => value,
+            _ => panic!("{:?} not a value element", self),
+        }
+    }
+
+    fn map<F>(self, f: F) -> Element
+    where
+        F: FnOnce(i64) -> i64,
+    {
+        match self {
+            Element::Value(value) => Element::Value(f(value)),
+            _ => self,
         }
     }
 }
