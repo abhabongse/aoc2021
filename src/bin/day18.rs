@@ -28,7 +28,7 @@ fn main() {
             .map(SerialSnailfish::from)
             .fold1(|ref acc, ref n| (acc + n).reduce())
             .expect("empty seq of numbers");
-        eprintln!("{:?}", result);
+        // eprintln!("{:?}", result);
         result.magnitude()
     };
     println!("Part 1 answer: {}", p1_answer);
@@ -147,7 +147,21 @@ impl SerialSnailfish {
 
     /// Magnitude of the snailfish
     fn magnitude(&self) -> i64 {
-        todo!()
+        let mut stack = Vec::new();
+        for elem in self.0.iter() {
+            match elem {
+                Element::IncLevel => (),
+                Element::DecLevel => {
+                    let right = stack.pop().unwrap();
+                    let left = stack.pop().unwrap();
+                    stack.push(3 * left + 2 * right);
+                }
+                Element::Value(value) => stack.push(*value),
+            }
+        }
+        let result = stack.pop().unwrap();
+        assert!(stack.is_empty());
+        result
     }
 }
 
