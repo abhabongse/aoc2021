@@ -7,12 +7,12 @@ use anyhow::{bail, ensure, Context};
 use itertools::Itertools;
 use num::PrimInt;
 
-use aoc2021::argparser;
+use aoc2021::argparser::InputSrc;
 use aoc2021::collect_array::CollectArray;
 
 /// Main program
 fn main() {
-    let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
+    let input_src = InputSrc::from_arg(std::env::args().nth(1).as_deref());
     let input_reader = input_src.get_raw_reader().expect("cannot open file");
     let mut input_stream = InputStream::new(input_reader);
 

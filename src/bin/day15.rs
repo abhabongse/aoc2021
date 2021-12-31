@@ -7,12 +7,12 @@ use std::io::BufRead;
 use anyhow::Context;
 use nalgebra::{DMatrix, RowDVector};
 
-use aoc2021::argparser;
+use aoc2021::argparser::InputSrc;
 use aoc2021::grid::{orth_adjacent, GridPoint};
 
 /// Main program
 fn main() {
-    let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
+    let input_src = InputSrc::from_arg(std::env::args().nth(1).as_deref());
     let input_reader = input_src.get_reader().expect("cannot open file");
     let Input { risk_levels } = Input::from_buffer(input_reader).expect("cannot parse input");
 

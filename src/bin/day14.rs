@@ -9,13 +9,13 @@ use itertools::Itertools;
 use lazy_static::lazy_static;
 use regex::Regex;
 
-use aoc2021::argparser;
+use aoc2021::argparser::InputSrc;
 use aoc2021::collect_array::CollectArray;
-use aoc2021::quickparse::QuickParse;
+use aoc2021::parsing::QuickParse;
 
 /// Main program
 fn main() {
-    let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
+    let input_src = InputSrc::from_arg(std::env::args().nth(1).as_deref());
     let input_reader = input_src.get_reader().expect("cannot open file");
     let Input {
         template,

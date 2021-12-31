@@ -4,7 +4,7 @@ use std::io::BufRead;
 
 use lazy_static::lazy_static;
 
-use aoc2021::argparser;
+use aoc2021::argparser::InputSrc;
 
 lazy_static! {
     /// Mapping from closing character to error score
@@ -15,7 +15,7 @@ lazy_static! {
 
 /// Main program
 fn main() {
-    let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
+    let input_src = InputSrc::from_arg(std::env::args().nth(1).as_deref());
     let input_reader = input_src.get_reader().expect("cannot open file");
     let Input { statements } = Input::from_buffer(input_reader).expect("cannot parse input");
 

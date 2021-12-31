@@ -8,9 +8,9 @@ use itertools::Itertools;
 use lazy_static::lazy_static;
 use regex::Regex;
 
-use aoc2021::argparser;
+use aoc2021::argparser::InputSrc;
 use aoc2021::collect_array::CollectArray;
-use aoc2021::quickparse::QuickParse;
+use aoc2021::parsing::QuickParse;
 
 /// Hand-crafted information to decode toggle patterns into actual integer digits.
 /// In general, it performs an XOR-bitmask-then-count-one-bits test with each pattern.
@@ -37,7 +37,7 @@ static DECODER_BY_NULL_ONE_FOUR: [(u32, u32, u32); 10] = [
 
 /// Main program
 fn main() {
-    let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
+    let input_src = InputSrc::from_arg(std::env::args().nth(1).as_deref());
     let input_reader = input_src.get_reader().expect("cannot open file");
     let Input { display_logs } = Input::from_buffer(input_reader).expect("cannot parse input");
 

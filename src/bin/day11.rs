@@ -8,13 +8,13 @@ use std::ops::ControlFlow;
 use anyhow::{ensure, Context};
 use nalgebra::{Dim, Matrix, RawStorage, RawStorageMut, SMatrix};
 
-use aoc2021::argparser;
+use aoc2021::argparser::InputSrc;
 use aoc2021::collect_array::CollectArray;
 use aoc2021::grid::{king_adjacent, MatrixExt};
 
 /// Main program
 fn main() {
-    let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
+    let input_src = InputSrc::from_arg(std::env::args().nth(1).as_deref());
     let input_reader = input_src.get_reader().expect("cannot open file");
     let Input { grid } = Input::from_buffer(input_reader).expect("cannot parse input");
 

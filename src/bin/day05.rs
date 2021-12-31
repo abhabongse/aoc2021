@@ -8,12 +8,12 @@ use itertools::Itertools;
 use lazy_static::lazy_static;
 use regex::Regex;
 
-use aoc2021::argparser;
-use aoc2021::quickparse::QuickParse;
+use aoc2021::argparser::InputSrc;
+use aoc2021::parsing::QuickParse;
 
 /// Main program
 fn main() {
-    let input_src = argparser::InputSrc::from_arg(std::env::args().nth(1).as_deref());
+    let input_src = InputSrc::from_arg(std::env::args().nth(1).as_deref());
     let input_reader = input_src.get_reader().expect("cannot open file");
     let Input { line_segments } = Input::from_buffer(input_reader).expect("cannot parse input");
 
@@ -87,7 +87,7 @@ impl LineSegment {
         })
     }
 
-    /// Checks whethre the line segment is axis-aligned.
+    /// Checks whether the line segment is axis-aligned.
     fn is_axis_aligned(&self) -> bool {
         self.p.0 == self.q.0 || self.p.1 == self.q.1
     }
