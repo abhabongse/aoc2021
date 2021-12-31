@@ -22,20 +22,26 @@ fn main() {
     let input_reader = input_src.get_reader().expect("cannot open file");
     let Input { numbers } = Input::from_buffer(input_reader).expect("cannot parse input");
 
+    // Serialize snailfish numbers into stack-oriented representation
+    let numbers = numbers.iter().map(SerializedSnailfish::from).collect_vec();
+
     // Part 1: Sum of all numbers
     let p1_answer = {
-        let result = numbers
+        let result = numbers[1..]
             .iter()
-            .map(SerializedSnailfish::from)
-            .fold1(|ref acc, ref n| (acc + n).reduce())
-            .expect("empty seq of numbers");
+            .fold(numbers[0].clone(), |acc, n| (&acc + n).reduce());
         println!("Final result: {}", result);
         result.magnitude()
     };
     println!("Part 1 answer: {}", p1_answer);
 
-    // Part 2: TODO
-    let p2_answer = 0;
+    // Part 2: Largest sum of a pair
+    let p2_answer = numbers
+        .iter()
+        .permutations(2)
+        .map(|v| (v[0] + v[1]).reduce().magnitude())
+        .max()
+        .expect("empty seq of numbers");
     println!("Part 2 answer: {}", p2_answer);
 }
 
