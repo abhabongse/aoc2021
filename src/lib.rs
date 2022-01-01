@@ -5,3 +5,4 @@ pub mod grid;
 pub mod iterutils;
 pub mod parsing;
 pub mod snailfish;
+pub mod vecmat;

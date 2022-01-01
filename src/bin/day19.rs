@@ -1,20 +1,19 @@
 //! Day 19: Beacon Scanner, Advent of Code 2021  
 //! <https://adventofcode.com/2021/day/19>
-use std::fmt::{Debug, Formatter};
+use std::fmt::Debug;
 use std::io::BufRead;
-use std::ops::{Add, Neg, Sub};
-use std::str::FromStr;
 
-use anyhow::{ensure, Context};
+use anyhow::{anyhow, bail, ensure, Context};
 use itertools::{iproduct, Itertools};
 use lazy_static::lazy_static;
 use regex::Regex;
 
 use aoc2021::argparser::InputSrc;
+use aoc2021::collect_array::CollectArray;
+use aoc2021::vecmat::{CardinalMatrix, CardinalVector};
 
 lazy_static! {
-    static ref PERMUTATION_FUNCS: Vec<Box<dyn Fn(Point3D) -> Point3D + Sync>> =
-        Point3D::permutation_funcs();
+    static ref CUBE_ROTATIONS: [CardinalMatrix<i64, 3, 3>; 24] = cube_rotations();
 }
 
 /// Main program
@@ -23,7 +22,12 @@ fn main() {
     let input_reader = input_src.get_reader().expect("cannot open file");
     let Input { reports } = Input::from_buffer(input_reader).expect("cannot parse input");
 
-    let result = reports[0].rotate_and_align(&reports[1], 12, 1000);
+    let p = CardinalVector::new([1, 2, 3]);
+    for mat in CUBE_ROTATIONS.iter().copied() {
+        eprintln!("{:?}", mat * p);
+    }
+
+    let result = reports[0].rotate_and_align(&reports[1], 3, 1000);
     eprintln!("{:?}", result);
 
     // Part 1: TODO
@@ -38,52 +42,103 @@ fn main() {
 /// Program input data
 #[derive(Debug, Clone)]
 struct Input {
-    reports: Vec<ScannerReport>,
+    reports: Vec<Report>,
 }
 
 impl Input {
     /// Parses program input from buffered reader.
     fn from_buffer(reader: impl BufRead) -> anyhow::Result<Self> {
-        lazy_static! {
-            static ref SCANNER_HEADER_RE: Regex =
-                Regex::new(r"(?i)\s*-+\s*scanner\s+(\d+)\s*-+\s*").unwrap();
-        }
         let mut reports = Vec::new();
         for line in reader.lines() {
             let line = line.context("cannot read a line")?;
             if line.trim().is_empty() {
                 continue;
-            } else if let Some(captures) = SCANNER_HEADER_RE.captures(line.as_str()) {
-                let id: usize = captures[1].parse()?;
+            } else if let Some(id_result) = Input::parse_scanner_header(line.as_str()) {
+                let id = id_result?;
                 ensure!(
                     id == reports.len(),
                     "invalid scanner id: {} but expected {}",
                     id,
                     reports.len()
                 );
-                reports.push(ScannerReport::new());
+                reports.push(Report::new());
+            } else if let Some(point_result) = Input::parse_point(line.as_str()) {
+                let point = point_result?;
+                reports
+                    .last_mut()
+                    .with_context(|| {
+                        format!(
+                            "not started with scanner header: '{}'",
+                            line.escape_default()
+                        )
+                    })?
+                    .push(point);
             } else {
-                let current_report = reports.last_mut().with_context(|| {
-                    format!(
-                        "not started with scanner header: '{}'",
-                        line.escape_default()
-                    )
-                })?;
-                current_report.push(line.parse()?)
+                bail!("unrecognized line format: '{}'", line.escape_default());
             }
         }
         Ok(Input { reports })
     }
+
+    /// Attempts to parse a scanner header line for the scanner id.
+    /// `None` is returned if the line format does not match.
+    /// Other kinds of parsing errors will result in `Some(Err(anyhow::Error))`.
+    fn parse_scanner_header(s: &str) -> Option<anyhow::Result<usize>> {
+        lazy_static! {
+            static ref SCANNER_HEADER_RE: Regex =
+                Regex::new(r"(?i)\s*-+\s*scanner\s+(\d+)\s*-+\s*").unwrap();
+        }
+        let captures = SCANNER_HEADER_RE.captures(s)?;
+        Some(captures[1].parse().with_context(|| {
+            format!(
+                "cannot parse scanner id: '{}'",
+                captures[1].escape_default()
+            )
+        }))
+    }
+
+    /// Attempts to parse a comma-seperated data into a point in 3-dimensional space.
+    /// `None` is returned if the line format does not match.
+    /// Other kinds of parsing errors will result in `Some(Err(anyhow::Error))`.
+    fn parse_point(s: &str) -> Option<anyhow::Result<Point3D>> {
+        lazy_static! {
+            static ref COORDS_RE: Regex = Regex::new(
+                r"(?x)
+                    \s*(-?\d+)\s*,
+                    \s*(-?\d+)\s*,
+                    \s*(-?\d+)\s*",
+            )
+            .unwrap();
+        }
+        let captures = COORDS_RE.captures(s)?;
+        let x = match captures[1].parse() {
+            Ok(value) => value,
+            _ => return Some(Err(anyhow!("cannot parse integer"))),
+        };
+        let y = match captures[2].parse() {
+            Ok(value) => value,
+            _ => return Some(Err(anyhow!("cannot parse integer"))),
+        };
+        let z = match captures[3].parse() {
+            Ok(value) => value,
+            _ => return Some(Err(anyhow!("cannot parse integer"))),
+        };
+        Some(Ok(CardinalVector::new([x, y, z])))
+    }
 }
 
-/// Represents a report of a scanner
-#[derive(Debug, Clone)]
-struct ScannerReport(Vec<Point3D>);
+/// Represents a point in 3-dimensional space
+type Point3D = CardinalVector<i64, 3>;
+type TransMatrix = CardinalMatrix<i64, 3, 3>;
 
-impl ScannerReport {
+/// Represents a list of beacon positions reported by a scanner
+#[derive(Debug, Clone)]
+struct Report(Vec<Point3D>);
+
+impl Report {
     /// Creates an empty scanner report.
     fn new() -> Self {
-        ScannerReport(Vec::new())
+        Report(Vec::new())
     }
 
     /// Adds a new report.
@@ -99,6 +154,8 @@ impl ScannerReport {
         beacon_target: usize,
         scanner_range: i64,
     ) -> Option<Point3D> {
+        let result = self.align(other, beacon_target, scanner_range);
+        eprintln!("{:?}", result);
         todo!()
     }
 
@@ -130,102 +187,30 @@ impl ScannerReport {
         let fst_set = self.0.iter().copied();
         let fst_set = fst_set
             .filter(|p| (*p - offset).norm_max() <= scanner_range)
-            .sorted_by_key(|p| (p.0, p.1, p.2))
+            .sorted_by_key(|p| p.to_vec())
             .collect_vec();
         let snd_set = other.0.iter().copied();
         let snd_set = snd_set
             .map(|p| p + offset)
             .filter(|p| p.norm_max() <= scanner_range)
-            .sorted_by_key(|p| (p.0, p.1, p.2))
+            .sorted_by_key(|p| p.to_vec())
             .collect_vec();
         fst_set == snd_set
     }
 }
 
-/// Represents an integer position in 3-dimensional space
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-struct Point3D(i64, i64, i64);
-
-impl Point3D {
-    /// Computes the maximum norm of the point.
-    fn norm_max(&self) -> i64 {
-        [self.0, self.1, self.2]
-            .into_iter()
-            .map(|v| v.abs())
-            .max()
-            .unwrap()
-    }
-
-    /// Generates all  anonymous functions (i.e. lambdas) which transforms a point
-    /// into another position through each of 24 possible cube-rotations.
-    fn permutation_funcs() -> Vec<Box<dyn Fn(Point3D) -> Point3D + Sync>> {
-        let xyz_rotators = [
-            |p: Point3D| p,
-            |p: Point3D| Point3D(p.1, p.2, p.0),
-            |p: Point3D| Point3D(p.2, p.0, p.1),
-        ];
-        let xy_reflectors = [|p: Point3D| p, |p: Point3D| Point3D(p.1, p.0, -p.2)];
-        let z_rotators = [
-            |p: Point3D| p,
-            |p: Point3D| Point3D(p.1, -p.0, p.2),
-            |p: Point3D| Point3D(-p.0, -p.1, p.2),
-            |p: Point3D| Point3D(-p.1, p.0, p.2),
-        ];
-        iproduct!(xyz_rotators, xy_reflectors, z_rotators)
-            .map(|(a, b, c)| {
-                Box::new(move |p: Point3D| c(b(a(p)))) as Box<dyn Fn(Point3D) -> Point3D + Sync>
-            })
-            .collect_vec()
-    }
-}
-
-impl FromStr for Point3D {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        lazy_static! {
-            static ref COORDS_RE: Regex = Regex::new(
-                r"(?x)
-                    \s*(-?\d+)\s*,
-                    \s*(-?\d+)\s*,
-                    \s*(-?\d+)\s*"
-            )
-            .unwrap();
-        }
-        let captures = COORDS_RE
-            .captures(s)
-            .with_context(|| format!("invalid point format: '{}'", s.escape_default()))?;
-        Ok(Point3D(
-            captures[1].parse()?,
-            captures[2].parse()?,
-            captures[3].parse()?,
-        ))
-    }
-}
-
-impl Debug for Point3D {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({}, {}, {})", self.0, self.1, self.2)
-    }
-}
-
-impl Add for Point3D {
-    type Output = Self;
-    fn add(self, rhs: Self) -> Self::Output {
-        Point3D(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2)
-    }
-}
-
-impl Sub for Point3D {
-    type Output = Self;
-    fn sub(self, rhs: Self) -> Self::Output {
-        Point3D(self.0 - rhs.0, self.1 - rhs.1, self.2 - rhs.2)
-    }
-}
-
-impl Neg for Point3D {
-    type Output = Self;
-    fn neg(self) -> Self::Output {
-        Point3D(-self.0, -self.1, -self.2)
-    }
+/// Generates all transformation matrix which would rotate
+/// an axis-aligned cube centered at the origin in all 24 possible ways.
+fn cube_rotations() -> [CardinalMatrix<i64, 3, 3>; 24] {
+    let xyz_rotate_suite = TransMatrix::xyz_rotate_suite();
+    let xy_rotate_suite = TransMatrix::xy_rotate_suite();
+    let z_rotate_suite = TransMatrix::z_rotate_suite();
+    iproduct!(
+        xyz_rotate_suite.iter().copied(),
+        xy_rotate_suite.iter().copied(),
+        z_rotate_suite.iter().copied()
+    )
+    .map(|(a, b, c)| c * b * a)
+    .collect_exact_array()
+    .unwrap()
 }
