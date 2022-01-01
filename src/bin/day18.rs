@@ -172,7 +172,7 @@ impl SerializedSnailfish {
     }
 }
 
-impl Add<&SerializedSnailfish> for &SerializedSnailfish {
+impl Add for &SerializedSnailfish {
     type Output = SerializedSnailfish;
 
     fn add(self, rhs: &SerializedSnailfish) -> Self::Output {
