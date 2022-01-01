@@ -22,11 +22,6 @@ fn main() {
     let input_reader = input_src.get_reader().expect("cannot open file");
     let Input { reports } = Input::from_buffer(input_reader).expect("cannot parse input");
 
-    let p = CardinalVector::new([1, 2, 3]);
-    for mat in CUBE_ROTATIONS.iter().copied() {
-        eprintln!("{:?}", mat * p);
-    }
-
     let result = reports[0].rotate_and_align(&reports[1], 3, 1000);
     eprintln!("{:?}", result);
 
@@ -146,6 +141,12 @@ impl Report {
         self.0.push(point);
     }
 
+    /// Makes a copy of the report by transforming positions of the beacons
+    /// using the specified transformation matrix.
+    fn rotate_copy(&self, mat: TransMatrix) -> Self {
+        Report(self.0.iter().copied().map(|p| mat * p).collect_vec())
+    }
+
     /// Attempts to rotate the `other` scanner report and aligns its reported beacons with _this_ scanner.
     /// See details about other function parameters from [`ScannerReport::align`].
     fn rotate_and_align(
@@ -153,10 +154,14 @@ impl Report {
         other: &Self,
         beacon_target: usize,
         scanner_range: i64,
-    ) -> Option<Point3D> {
-        let result = self.align(other, beacon_target, scanner_range);
-        eprintln!("{:?}", result);
-        todo!()
+    ) -> Option<(Point3D, Self)> {
+        for mat in CUBE_ROTATIONS.iter().copied() {
+            let modified_other = other.rotate_copy(mat);
+            if let Some(offset) = self.align(&modified_other, beacon_target, scanner_range) {
+                return Some((offset, modified_other));
+            }
+        }
+        None
     }
 
     /// Attempts to align the reports of two scanners over each other
