@@ -1,15 +1,16 @@
 //! Day 18: Snailfish, Advent of Code 2021  
 //! <https://adventofcode.com/2021/day/18>
 use std::fmt::{Debug, Display, Formatter};
-use std::io::BufRead;
+use std::io::{BufRead, BufReader};
 use std::iter::once;
 use std::ops::Add;
 
 use anyhow::anyhow;
+use clap::Parser;
 use itertools::{chain, Itertools};
 use lazy_static::lazy_static;
 
-use aoc2021::argparser::InputSrc;
+use aoc2021::argparser::Cli;
 use aoc2021::snailfish::{Node, SnailfishParser};
 
 lazy_static! {
@@ -18,8 +19,8 @@ lazy_static! {
 
 /// Main program
 fn main() {
-    let input_src = InputSrc::from_arg(std::env::args().nth(1).as_deref());
-    let input_reader = input_src.get_reader().expect("cannot open file");
+    let cli = Cli::parse();
+    let input_reader = BufReader::new(cli.input_reader().expect("cannot open file"));
     let Input { numbers } = Input::from_buffer(input_reader).expect("cannot parse input");
 
     // Serialize snailfish numbers into stack-oriented representation

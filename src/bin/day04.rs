@@ -4,23 +4,24 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::io;
-use std::io::BufRead;
+use std::io::{BufRead, BufReader};
 use std::iter::Sum;
 use std::str::FromStr;
 
 use anyhow::{anyhow, Context};
+use clap::Parser;
 use itertools::Itertools;
 use num::PrimInt;
 
-use aoc2021::argparser::InputSrc;
+use aoc2021::argparser::Cli;
 use aoc2021::collect_array::CollectArray;
 use aoc2021::grid::GridIndices;
 use aoc2021::parsing::QuickParse;
 
 /// Main program
 fn main() {
-    let input_src = InputSrc::from_arg(std::env::args().nth(1).as_deref());
-    let input_reader = input_src.get_reader().expect("cannot open file");
+    let cli = Cli::parse();
+    let input_reader = BufReader::new(cli.input_reader().expect("cannot open file"));
     let Input { boards, lots } = Input::from_buffer(input_reader).expect("cannot parse input");
 
     // Play each bingo board with the pre-determined sequence of lots until reaching the winning state

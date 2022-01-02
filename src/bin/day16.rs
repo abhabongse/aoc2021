@@ -4,16 +4,17 @@ use std::collections::VecDeque;
 use std::io::Read;
 
 use anyhow::{bail, ensure, Context};
+use clap::Parser;
 use itertools::Itertools;
 use num::PrimInt;
 
-use aoc2021::argparser::InputSrc;
+use aoc2021::argparser::Cli;
 use aoc2021::collect_array::CollectArray;
 
 /// Main program
 fn main() {
-    let input_src = InputSrc::from_arg(std::env::args().nth(1).as_deref());
-    let input_reader = input_src.get_raw_reader().expect("cannot open file");
+    let cli = Cli::parse();
+    let input_reader = cli.input_reader().expect("cannot open file");
     let mut input_stream = InputStream::new(input_reader);
 
     // Parses the packet from the input stream

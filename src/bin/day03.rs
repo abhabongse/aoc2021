@@ -1,19 +1,20 @@
 //! Day 3: Binary Diagnostic, Advent of Code 2021  
 //! <https://adventofcode.com/2021/day/3>
 use std::fmt::{Display, Formatter};
-use std::io::BufRead;
+use std::io::{BufRead, BufReader};
 use std::ops::{Deref, Not};
 use std::str::FromStr;
 
 use anyhow::Context;
+use clap::Parser;
 
-use aoc2021::argparser::InputSrc;
+use aoc2021::argparser::Cli;
 use aoc2021::parsing::QuickParse;
 
 /// Main program
 fn main() {
-    let input_src = InputSrc::from_arg(std::env::args().nth(1).as_deref());
-    let input_reader = input_src.get_reader().expect("cannot open file");
+    let cli = Cli::parse();
+    let input_reader = BufReader::new(cli.input_reader().expect("cannot open file"));
     let Input { bit_vectors } = Input::from_buffer(input_reader).expect("cannot parse input");
 
     // Obtain a vector to references to bit vectors

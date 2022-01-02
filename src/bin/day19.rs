@@ -2,15 +2,16 @@
 //! <https://adventofcode.com/2021/day/19>
 use std::collections::{HashSet, VecDeque};
 use std::fmt::Debug;
-use std::io::BufRead;
+use std::io::{BufRead, BufReader};
 
 use anyhow::{anyhow, bail, ensure, Context};
+use clap::Parser;
 use itertools::{iproduct, Itertools};
 use lazy_static::lazy_static;
 use num::Zero;
 use regex::Regex;
 
-use aoc2021::argparser::InputSrc;
+use aoc2021::argparser::Cli;
 use aoc2021::collect_array::CollectArray;
 use aoc2021::vecmat::{CardinalMatrix, CardinalVector};
 
@@ -24,8 +25,8 @@ lazy_static! {
 
 /// Main program
 fn main() {
-    let input_src = InputSrc::from_arg(std::env::args().nth(1).as_deref());
-    let input_reader = input_src.get_reader().expect("cannot open file");
+    let cli = Cli::parse();
+    let input_reader = BufReader::new(cli.input_reader().expect("cannot open file"));
     let Input { reports } = Input::from_buffer(input_reader).expect("cannot parse input");
 
     // Reconstruct the locations of scanners and beacons

@@ -1,21 +1,22 @@
 //! Day 17: Trick Shot, Advent of Code 2021  
 //! <https://adventofcode.com/2021/day/17>
 use std::fmt::Display;
-use std::io::BufRead;
+use std::io::{BufRead, BufReader};
 use std::ops::RangeInclusive;
 
 use anyhow::{ensure, Context};
+use clap::Parser;
 use itertools::iproduct;
 use lazy_static::lazy_static;
 use num::PrimInt;
 use regex::Regex;
 
-use aoc2021::argparser::InputSrc;
+use aoc2021::argparser::Cli;
 
 /// Main program
 fn main() {
-    let input_src = InputSrc::from_arg(std::env::args().nth(1).as_deref());
-    let input_reader = input_src.get_reader().expect("cannot open file");
+    let cli = Cli::parse();
+    let input_reader = BufReader::new(cli.input_reader().expect("cannot open file"));
     let Input { target } = Input::from_buffer(input_reader).expect("cannot parse input");
 
     // Obtains the feasible velocities for the probe to be able to hit the target

@@ -2,18 +2,19 @@
 //! <https://adventofcode.com/2021/day/15>
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap};
-use std::io::BufRead;
+use std::io::{BufRead, BufReader};
 
 use anyhow::Context;
+use clap::Parser;
 use nalgebra::{DMatrix, RowDVector};
 
-use aoc2021::argparser::InputSrc;
+use aoc2021::argparser::Cli;
 use aoc2021::grid::{orth_adjacent, GridPoint};
 
 /// Main program
 fn main() {
-    let input_src = InputSrc::from_arg(std::env::args().nth(1).as_deref());
-    let input_reader = input_src.get_reader().expect("cannot open file");
+    let cli = Cli::parse();
+    let input_reader = BufReader::new(cli.input_reader().expect("cannot open file"));
     let Input { risk_levels } = Input::from_buffer(input_reader).expect("cannot parse input");
 
     // Part 1: For input grid

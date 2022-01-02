@@ -1,17 +1,18 @@
 //! Day 2: Dive!, Advent of Code 2021  
 //! <https://adventofcode.com/2021/day/2>
-use std::io::BufRead;
+use std::io::{BufRead, BufReader};
 use std::str::FromStr;
 
 use anyhow::bail;
+use clap::Parser;
 
-use aoc2021::argparser::InputSrc;
+use aoc2021::argparser::Cli;
 use aoc2021::parsing::QuickParse;
 
 /// Main program
 fn main() {
-    let input_src = InputSrc::from_arg(std::env::args().nth(1).as_deref());
-    let input_reader = input_src.get_reader().expect("cannot open file");
+    let cli = Cli::parse();
+    let input_reader = BufReader::new(cli.input_reader().expect("cannot open file"));
     let Input { commands } = Input::from_buffer(input_reader).expect("cannot parse input");
 
     // Part 1: Naïve submarine navigation

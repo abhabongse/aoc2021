@@ -13,6 +13,7 @@ publish = false
 [dependencies]
 anyhow = "1.0"
 cgmath = "0.18"
+clap = { version = "3.0", features = ["derive"] }
 euclid = "0.22.6"
 generator = "0.7.0"
 itertools = "0.10.0"
@@ -24,7 +25,6 @@ ndarray = "0.15.4"
 num = "0.4"
 ouroboros = "0.14.0"
 regex = "1.5"
-structopt = "0.3"
 thiserror = "1.0"
 
 [build-dependencies]

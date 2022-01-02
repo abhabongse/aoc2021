@@ -1,14 +1,15 @@
 //! Day 8: Seven Segment Search, Advent of Code 2021  
 //! <https://adventofcode.com/2021/day/8>
-use std::io::BufRead;
+use std::io::{BufRead, BufReader};
 use std::str::FromStr;
 
 use anyhow::{bail, ensure, Context};
+use clap::Parser;
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use regex::Regex;
 
-use aoc2021::argparser::InputSrc;
+use aoc2021::argparser::Cli;
 use aoc2021::collect_array::CollectArray;
 use aoc2021::parsing::QuickParse;
 
@@ -37,8 +38,8 @@ static DECODER_BY_NULL_ONE_FOUR: [(u32, u32, u32); 10] = [
 
 /// Main program
 fn main() {
-    let input_src = InputSrc::from_arg(std::env::args().nth(1).as_deref());
-    let input_reader = input_src.get_reader().expect("cannot open file");
+    let cli = Cli::parse();
+    let input_reader = BufReader::new(cli.input_reader().expect("cannot open file"));
     let Input { display_logs } = Input::from_buffer(input_reader).expect("cannot parse input");
 
     // Part 1: Counting appearances of displaying digits with unique number of segments

@@ -1,20 +1,21 @@
 //! Day 5: Hydrothermal Venture, Advent of Code 2021  
 //! <https://adventofcode.com/2021/day/5>
-use std::io::BufRead;
+use std::io::{BufRead, BufReader};
 use std::str::FromStr;
 
 use anyhow::Context;
+use clap::Parser;
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use regex::Regex;
 
-use aoc2021::argparser::InputSrc;
+use aoc2021::argparser::Cli;
 use aoc2021::parsing::QuickParse;
 
 /// Main program
 fn main() {
-    let input_src = InputSrc::from_arg(std::env::args().nth(1).as_deref());
-    let input_reader = input_src.get_reader().expect("cannot open file");
+    let cli = Cli::parse();
+    let input_reader = BufReader::new(cli.input_reader().expect("cannot open file"));
     let Input { line_segments } = Input::from_buffer(input_reader).expect("cannot parse input");
 
     // Part 1: Axis-aligned line segments only

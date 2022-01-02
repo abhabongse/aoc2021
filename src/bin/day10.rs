@@ -1,10 +1,11 @@
 //! Day 10: Syntax Scoring, Advent of Code 2021  
 //! <https://adventofcode.com/2021/day/10>
-use std::io::BufRead;
+use std::io::{BufRead, BufReader};
 
+use clap::Parser;
 use lazy_static::lazy_static;
 
-use aoc2021::argparser::InputSrc;
+use aoc2021::argparser::Cli;
 
 lazy_static! {
     /// Mapping from closing character to error score
@@ -15,8 +16,8 @@ lazy_static! {
 
 /// Main program
 fn main() {
-    let input_src = InputSrc::from_arg(std::env::args().nth(1).as_deref());
-    let input_reader = input_src.get_reader().expect("cannot open file");
+    let cli = Cli::parse();
+    let input_reader = BufReader::new(cli.input_reader().expect("cannot open file"));
     let Input { statements } = Input::from_buffer(input_reader).expect("cannot parse input");
 
     // Check syntax of all code statements

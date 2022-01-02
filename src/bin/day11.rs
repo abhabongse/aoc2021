@@ -2,20 +2,21 @@
 //! <https://adventofcode.com/2021/day/11>
 use std::collections::{HashSet, VecDeque};
 use std::io;
-use std::io::{BufRead, Write};
+use std::io::{BufRead, BufReader, Write};
 use std::ops::ControlFlow;
 
 use anyhow::{ensure, Context};
+use clap::Parser;
 use nalgebra::{Dim, Matrix, RawStorage, RawStorageMut, SMatrix};
 
-use aoc2021::argparser::InputSrc;
+use aoc2021::argparser::Cli;
 use aoc2021::collect_array::CollectArray;
 use aoc2021::grid::{king_adjacent, MatrixExt};
 
 /// Main program
 fn main() {
-    let input_src = InputSrc::from_arg(std::env::args().nth(1).as_deref());
-    let input_reader = input_src.get_reader().expect("cannot open file");
+    let cli = Cli::parse();
+    let input_reader = BufReader::new(cli.input_reader().expect("cannot open file"));
     let Input { grid } = Input::from_buffer(input_reader).expect("cannot parse input");
 
     // Check the input grid
