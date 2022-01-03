@@ -254,15 +254,15 @@ impl Operator {
             Operator::Maximum => children.max().context("missing a child")?,
             Operator::Minimum => children.min().context("missing a child")?,
             Operator::GreaterThan => {
-                let [fst, snd] = children.collect_exact_array()?;
+                let [fst, snd] = children.collect_exact()?;
                 (fst > snd) as u64
             }
             Operator::LessThan => {
-                let [fst, snd] = children.collect_exact_array()?;
+                let [fst, snd] = children.collect_exact()?;
                 (fst < snd) as u64
             }
             Operator::EqualTo => {
-                let [fst, snd] = children.collect_exact_array()?;
+                let [fst, snd] = children.collect_exact()?;
                 (fst == snd) as u64
             }
         })

@@ -262,6 +262,6 @@ fn cube_rotations() -> [CardinalMatrix<i64, 3, 3>; 24] {
         z_rotate_suite.iter().copied()
     )
     .map(|(a, b, c)| c * b * a)
-    .collect_exact_array()
+    .collect_exact()
     .unwrap()
 }

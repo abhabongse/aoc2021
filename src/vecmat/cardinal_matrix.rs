@@ -39,7 +39,7 @@ where
         successors(Some(Self::identity_mat()), |&m| {
             Some(CardinalMatrix::rotate_mat() * m)
         })
-        .collect_trunc_array()
+        .collect_trunc()
         .unwrap()
     }
 }
@@ -99,7 +99,7 @@ where
         successors(Some(Self::identity_mat()), |&m| {
             Some(CardinalMatrix::xyz_rotate_mat() * m)
         })
-        .collect_trunc_array()
+        .collect_trunc()
         .unwrap()
     }
 
@@ -108,7 +108,7 @@ where
         successors(Some(Self::identity_mat()), |&m| {
             Some(CardinalMatrix::xy_rotate_mat() * m)
         })
-        .collect_trunc_array()
+        .collect_trunc()
         .unwrap()
     }
 
@@ -117,7 +117,7 @@ where
         successors(Some(Self::identity_mat()), |&m| {
             Some(CardinalMatrix::z_rotate_mat() * m)
         })
-        .collect_trunc_array()
+        .collect_trunc()
         .unwrap()
     }
 }
@@ -136,7 +136,7 @@ where
                     .map(|j| self.0[i][j] * rhs.0[j])
                     .fold(T::zero(), |acc, x| acc + x)
             })
-            .collect_exact_array()
+            .collect_exact()
             .unwrap();
         CardinalVector(result)
     }
@@ -158,10 +158,10 @@ where
                             .map(|j| self.0[i][j] * rhs.0[j][k])
                             .fold(T::zero(), |acc, x| acc + x)
                     })
-                    .collect_exact_array()
+                    .collect_exact()
                     .unwrap()
             })
-            .collect_exact_array()
+            .collect_exact()
             .unwrap();
         CardinalMatrix(result)
     }

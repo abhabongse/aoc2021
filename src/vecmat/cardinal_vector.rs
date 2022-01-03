@@ -108,7 +108,7 @@ where
     fn add(self, rhs: Self) -> Self::Output {
         let result: [_; SIZE] = izip!(self.0.into_iter(), rhs.0.into_iter())
             .map(|(a, b)| a + b)
-            .collect_exact_array()
+            .collect_exact()
             .unwrap();
         CardinalVector(result)
     }
@@ -123,7 +123,7 @@ where
     fn sub(self, rhs: Self) -> Self::Output {
         let result: [_; SIZE] = izip!(self.0.into_iter(), rhs.0.into_iter())
             .map(|(a, b)| a - b)
-            .collect_exact_array()
+            .collect_exact()
             .unwrap();
         CardinalVector(result)
     }
@@ -136,12 +136,7 @@ where
     type Output = Self;
 
     fn neg(self) -> Self::Output {
-        let result: [_; SIZE] = self
-            .0
-            .into_iter()
-            .map(|a| -a)
-            .collect_exact_array()
-            .unwrap();
+        let result: [_; SIZE] = self.0.into_iter().map(|a| -a).collect_exact().unwrap();
         CardinalVector(result)
     }
 }
@@ -174,7 +169,7 @@ where
                     .map(|j| self.0[j] * rhs.0[j][k])
                     .fold(T::zero(), |acc, x| acc + x)
             })
-            .collect_exact_array()
+            .collect_exact()
             .unwrap();
         CardinalVector(result)
     }

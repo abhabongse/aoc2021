@@ -34,6 +34,7 @@ name = "aoc2021"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "arrayvec",
  "cgmath",
  "clap",
  "euclid",
@@ -68,6 +69,12 @@ checksum = "072df7202e63b127ab55acfe16ce97013d5b97bf160489336d3f1840fd78e99e"
 dependencies = [
  "num-traits",
 ]
+
+[[package]]
+name = "arrayvec"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8da52d66c7071e2e3fa2a1e5c6d088fec47b593032b254f5e980de8ea54454d6"
 
 [[package]]
 name = "ascii-canvas"

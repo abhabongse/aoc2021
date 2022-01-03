@@ -146,7 +146,7 @@ where
     /// where each string represents a bingo row containing numbers separated by whitespaces.
     fn from_lines(lines: Vec<String>) -> anyhow::Result<Self>
     where
-        T: Hash + FromStr,
+        T: Debug + Hash + FromStr,
     {
         let mut board_numbers = Vec::new();
         for line in lines {
@@ -193,17 +193,17 @@ where
 
 impl<T, const R: usize, const C: usize> TryFrom<Vec<Vec<T>>> for Board<T, R, C>
 where
-    T: PrimInt + Hash,
+    T: Debug + PrimInt + Hash,
 {
     type Error = anyhow::Error;
 
     fn try_from(numbers: Vec<Vec<T>>) -> Result<Self, Self::Error> {
         let mut rows = Vec::with_capacity(R);
         for row in numbers {
-            let row: [_; C] = row.into_iter().collect_exact_array()?;
+            let row: [_; C] = row.into_iter().collect_exact()?;
             rows.push(row);
         }
-        Ok(Board::new(rows.into_iter().collect_exact_array()?))
+        Ok(Board::new(rows.into_iter().collect_exact()?))
     }
 }
 

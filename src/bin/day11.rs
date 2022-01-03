@@ -69,9 +69,9 @@ impl Input {
                     .with_context(|| format!("unrecognized digit: '{}'", c.escape_default()))?;
                 row_elements.push(d as u8);
             }
-            elements.push(row_elements.into_iter().collect_exact_array()?);
+            elements.push(row_elements.into_iter().collect_exact()?);
         }
-        let grid = SMatrix::from(elements.into_iter().collect_exact_array()?);
+        let grid = SMatrix::from(elements.into_iter().collect_exact()?);
         Ok(Input { grid })
     }
 }

@@ -61,7 +61,7 @@ impl Input {
             if line.trim().is_empty() {
                 break;
             }
-            let [x, y] = line.split(',').collect_exact_array()?;
+            let [x, y] = line.split(',').collect_exact()?;
             dots.push(Point {
                 x: x.trim().quickparse()?,
                 y: y.trim().quickparse()?,

@@ -80,7 +80,7 @@ impl Input {
         let mut graph = Graph::new();
         for line in reader.lines() {
             let line = line.context("cannot read a line of string")?;
-            let [u, v] = line.trim().split('-').collect_exact_array()?;
+            let [u, v] = line.trim().split('-').collect_exact()?;
             graph.add_edge(u, v);
             graph.add_edge(v, u);
         }

@@ -12,6 +12,7 @@ publish = false
 
 [dependencies]
 anyhow = "1.0"
+arrayvec = "0.7"
 cgmath = "0.18"
 clap = { version = "3.0", features = ["derive"] }
 euclid = "0.22.6"

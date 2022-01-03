@@ -109,8 +109,8 @@ impl FromStr for InsertionRule {
         let captures = RE
             .captures(s)
             .with_context(|| format!("invalid insertion rule: {}", s))?;
-        let [fst, snd] = captures[1].chars().collect_exact_array()?;
-        let [insert_char] = captures[2].chars().collect_exact_array()?;
+        let [fst, snd] = captures[1].chars().collect_exact()?;
+        let [insert_char] = captures[2].chars().collect_exact()?;
         let pattern = (fst, snd);
         Ok(InsertionRule {
             pattern,

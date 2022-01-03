@@ -165,14 +165,8 @@ impl FromStr for DisplayLog {
         let all_patterns: Vec<_> = (1..=14)
             .map(|i| pattern_from_scribbles(&captures[i]))
             .collect::<anyhow::Result<_>>()?;
-        let digit_patterns = (&all_patterns[0..10])
-            .iter()
-            .copied()
-            .collect_exact_array()?;
-        let display_patterns = (&all_patterns[10..14])
-            .iter()
-            .copied()
-            .collect_exact_array()?;
+        let digit_patterns = (&all_patterns[0..10]).iter().copied().collect_exact()?;
+        let display_patterns = (&all_patterns[10..14]).iter().copied().collect_exact()?;
 
         Ok(DisplayLog::new(digit_patterns, display_patterns))
     }
