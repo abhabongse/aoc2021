@@ -7,6 +7,7 @@ use std::str::FromStr;
 
 use anyhow::Context;
 use clap::Parser;
+use itertools::Itertools;
 
 use aoc2021::argparser::Cli;
 use aoc2021::parsing::QuickParse;
@@ -125,7 +126,7 @@ fn compute_power_consumption(numbers: &[&BitVec]) -> anyhow::Result<u64> {
     let bit_length = bit_length.context("empty collection of bit vectors")?;
     let gamma: BitVec = (0..bit_length)
         .map(|index| cast_votes(numbers, index))
-        .collect::<anyhow::Result<_>>()?;
+        .try_collect()?;
     let epsilon: BitVec = gamma.iter().copied().map(bool::not).collect();
     Ok(u64::from(&gamma) * u64::from(&epsilon))
 }

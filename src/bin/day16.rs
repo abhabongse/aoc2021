@@ -115,7 +115,7 @@ impl Packet {
                 let children: Vec<_> = children
                     .iter()
                     .map(|subpacket| subpacket.eval())
-                    .collect::<anyhow::Result<_>>()?;
+                    .try_collect()?;
                 op.apply(children.as_slice())
             }
         }

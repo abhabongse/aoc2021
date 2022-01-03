@@ -1,8 +1,10 @@
 //! Implements a blanket trait extension for [`Iterator`] trait which adds methods
 //! to collect items from an iterator into a constant-sized array.
+use std::error::Error as StdError;
 use std::fmt::Debug;
 use std::iter::Peekable;
 
+use anyhow::bail;
 use arrayvec::ArrayVec;
 use itertools::Itertools;
 use thiserror::Error;
@@ -18,7 +20,7 @@ pub enum CollectArrayError {
 
 /// More detailed error for [`CollectArray`] methods
 #[derive(Error, Debug, Clone)]
-pub enum CollectArrayRecoverableError<T, I>
+pub enum CollectArrayRecoverableError<I, T>
 where
     I: Iterator<Item = T>,
 {
@@ -32,11 +34,11 @@ where
     },
 }
 
-impl<T, I> From<CollectArrayRecoverableError<T, I>> for CollectArrayError
+impl<I, T> From<CollectArrayRecoverableError<I, T>> for CollectArrayError
 where
     I: Iterator<Item = T>,
 {
-    fn from(err: CollectArrayRecoverableError<T, I>) -> Self {
+    fn from(err: CollectArrayRecoverableError<I, T>) -> Self {
         match err {
             CollectArrayRecoverableError::TooFewItems {
                 target,
@@ -72,7 +74,7 @@ pub trait CollectArray: Iterator {
     /// TODO: create test cases to test error values of this method
     fn collect_exact_recoverable<T, const SIZE: usize>(
         self,
-    ) -> Result<[T; SIZE], CollectArrayRecoverableError<T, Self>>
+    ) -> Result<[T; SIZE], CollectArrayRecoverableError<Self, T>>
     where
         Self: Sized + Iterator<Item = T>,
     {
@@ -101,11 +103,39 @@ pub trait CollectArray: Iterator {
         }
     }
 
+    /// Short-circuit version of [`collect_exact_recoverable`](CollectArray::collect_exact_recoverable).
+    /// The result would contain the value wrapped inside `Ok` item from the original iterator.
+    ///
+    /// - TODO: Replace anyhow with custom structs
+    /// - TODO: Provide recoverable version of this method
+    /// - TODO: Provide truncated version of this method
+    fn try_collect_exact<T, E, const SIZE: usize>(mut self) -> anyhow::Result<[T; SIZE]>
+    where
+        Self: Sized + Iterator<Item = Result<T, E>>,
+        E: 'static + StdError + Send + Sync,
+    {
+        let mut accumulated: ArrayVec<T, SIZE> = ArrayVec::new();
+        for _i in 0..SIZE {
+            let item = match self.next() {
+                Some(item) => item?,
+                None => bail!("too few items from the iterator"),
+            };
+            accumulated.push(item);
+        }
+        if self.next().is_some() {
+            bail!("too many items from the iterator");
+        }
+        match accumulated.into_inner() {
+            Ok(array) => Ok(array),
+            Err(_) => unreachable!(),
+        }
+    }
+
     /// Collects all items from the iterator into a constant-sized array.
     /// Too few items produced will result in an [`CollectArrayError`].
     /// Extraneous items produced by the iterator will not be collected.
     /// If you want a version of this method that provides partial data recovery,
-    /// see [`collect_exact_recoverable`](CollectArray::collect_exact_recoverable).
+    /// see [`collect_trunc_recoverable`](CollectArray::collect_trunc_recoverable).
     fn collect_trunc<T, const SIZE: usize>(self) -> Result<[T; SIZE], CollectArrayError>
     where
         Self: Sized + Iterator<Item = T>,
@@ -119,7 +149,7 @@ pub trait CollectArray: Iterator {
     /// TODO: create test cases to test error values of this method
     fn collect_trunc_recoverable<T, const SIZE: usize>(
         self,
-    ) -> Result<[T; SIZE], CollectArrayRecoverableError<T, Self>>
+    ) -> Result<[T; SIZE], CollectArrayRecoverableError<Self, T>>
     where
         Self: Sized + Iterator<Item = T>,
     {
@@ -142,7 +172,7 @@ pub trait CollectArray: Iterator {
     }
 }
 
-impl<I> CollectArray for I where I: Iterator {}
+impl<I: ?Sized> CollectArray for I where I: Iterator {}
 
 #[cfg(test)]
 mod tests {

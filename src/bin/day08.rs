@@ -54,7 +54,7 @@ fn main() {
         let numbers: Vec<_> = display_logs
             .iter()
             .map(DisplayLog::decode_display_patterns)
-            .collect::<anyhow::Result<_>>()
+            .try_collect()
             .expect("error occurred while decoding display patterns");
         numbers.into_iter().sum()
     };
@@ -164,7 +164,7 @@ impl FromStr for DisplayLog {
             .with_context(|| format!("invalid line display input: {}", s))?;
         let all_patterns: Vec<_> = (1..=14)
             .map(|i| pattern_from_scribbles(&captures[i]))
-            .collect::<anyhow::Result<_>>()?;
+            .try_collect()?;
         let digit_patterns = (&all_patterns[0..10]).iter().copied().collect_exact()?;
         let display_patterns = (&all_patterns[10..14]).iter().copied().collect_exact()?;
 
