@@ -49,6 +49,7 @@ dependencies = [
  "num",
  "ouroboros",
  "regex",
+ "test-case",
  "thiserror",
 ]
 
@@ -804,6 +805,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2dfed899f0eb03f32ee8c6a0aabdb8a7949659e3466561fc0adf54e26d88c5f4"
 dependencies = [
  "winapi-util",
+]
+
+[[package]]
+name = "test-case"
+version = "2.0.0-rc1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "168d59b680d4c3f5a4a404ceedb366c49c0264aeff947a073608752f7949e551"
+dependencies = [
+ "cfg-if",
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "version_check",
 ]
 
 [[package]]

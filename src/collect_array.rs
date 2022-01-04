@@ -1,6 +1,5 @@
 //! Implements a blanket trait extension for [`Iterator`] trait which adds methods
 //! to collect items from an iterator into a constant-sized array.
-use std::error::Error as StdError;
 use std::fmt::Debug;
 use std::iter::Peekable;
 
@@ -9,18 +8,9 @@ use arrayvec::ArrayVec;
 use itertools::Itertools;
 use thiserror::Error;
 
-/// Error for [`CollectArray`] methods
-#[derive(Error, Debug, Clone)]
-pub enum CollectArrayError {
-    #[error("too few items from the iterator (expected {target} but found only {found})")]
-    TooFewItems { target: usize, found: usize },
-    #[error("too many items from the iterator (expected only {target})")]
-    TooManyItems { target: usize },
-}
-
 /// More detailed error for [`CollectArray`] methods
 #[derive(Error, Debug, Clone)]
-pub enum CollectArrayRecoverableError<I, T>
+pub enum CollectArrayError<I, T>
 where
     I: Iterator<Item = T>,
 {
@@ -34,24 +24,57 @@ where
     },
 }
 
-impl<I, T> From<CollectArrayRecoverableError<I, T>> for CollectArrayError
-where
-    I: Iterator<Item = T>,
-{
-    fn from(err: CollectArrayRecoverableError<I, T>) -> Self {
-        match err {
-            CollectArrayRecoverableError::TooFewItems {
-                target,
-                accumulated,
-            } => CollectArrayError::TooFewItems {
-                target,
-                found: accumulated.len(),
-            },
-            CollectArrayRecoverableError::TooManyItems { target, .. } => {
-                CollectArrayError::TooManyItems { target }
+macro_rules! generate_too_few_return {
+    (RETURN_CUSTOM_ERROR, $size:ident, $accumulated:ident) => {
+        return Err(CollectArrayError::TooFewItems {
+            target: $size,
+            accumulated: $accumulated.into_iter().collect_vec(),
+        });
+    };
+    (RETURN_ANYHOW, $size:ident, $accumulated:ident) => {
+        bail!(
+            "too few items from the iterator (expected {} but found only {})",
+            $size,
+            $accumulated.len()
+        );
+    };
+}
+
+macro_rules! generate_too_many_return {
+    (NO_CHECK_TOO_MANY, $_1:ident, $_2:ident, $_3:ident, $_4:ident) => {};
+    (CHECK_TOO_MANY, RETURN_CUSTOM_ERROR, $it:ident, $size:ident, $accumulated:ident) => {
+        if $it.peek().is_some() {
+            return Err(CollectArrayError::TooManyItems {
+                target: $size,
+                accumulated: $accumulated.into_iter().collect_vec(),
+                remaining: $it,
+            });
+        }
+    };
+    (CHECK_TOO_MANY, RETURN_ANYHOW, $it:ident, $size:ident, $accumulated:ident) => {
+        if $it.peek().is_some() {
+            bail!("too many items from the iterator (expected only {})", $size);
+        }
+    };
+}
+
+macro_rules! generate_collect_method {
+    ($checks_too_many:ident, $method_returns:ident, $it:ident, $size:ident) => {{
+        let mut it = $it.peekable();
+        let mut accumulated: ArrayVec<T, SIZE> = ArrayVec::new();
+        for _i in 0..SIZE {
+            if let Some(item) = it.next() {
+                accumulated.push(item);
+            } else {
+                generate_too_few_return!($method_returns, $size, accumulated);
             }
         }
-    }
+        generate_too_many_return!($checks_too_many, $method_returns, it, $size, accumulated);
+        match accumulated.into_inner() {
+            Ok(array) => Ok(array),
+            Err(_) => unreachable!(),
+        }
+    }};
 }
 
 /// Trait extension for [`Iterator`] trait which add methods
@@ -61,114 +84,77 @@ pub trait CollectArray: Iterator {
     /// Too few or too many items produced will result in an [`CollectArrayError`].
     /// If you want a version of this method that provides partial data recovery,
     /// see [`collect_exact_recoverable`](CollectArray::collect_exact_recoverable).
-    fn collect_exact<T, const SIZE: usize>(self) -> Result<[T; SIZE], CollectArrayError>
+    fn collect_exact<T, const SIZE: usize>(self) -> anyhow::Result<[T; SIZE]>
     where
         Self: Sized + Iterator<Item = T>,
     {
-        Ok(self.collect_exact_recoverable()?)
+        generate_collect_method!(CHECK_TOO_MANY, RETURN_ANYHOW, self, SIZE)
     }
 
     /// Same as [`collect_exact_recoverable`](CollectArray::collect_exact_recoverable)
-    /// but the error type [`CollectArrayRecoverableError`] also returns partial data.
+    /// but the error type [`CollectArrayError`] also returns partially processed data.
     ///
     /// TODO: create test cases to test error values of this method
     fn collect_exact_recoverable<T, const SIZE: usize>(
         self,
-    ) -> Result<[T; SIZE], CollectArrayRecoverableError<Self, T>>
+    ) -> Result<[T; SIZE], CollectArrayError<Self, T>>
     where
         Self: Sized + Iterator<Item = T>,
     {
-        let mut it = self.peekable();
-        let mut accumulated: ArrayVec<T, SIZE> = ArrayVec::new();
-        for _i in 0..SIZE {
-            if let Some(item) = it.next() {
-                accumulated.push(item);
-            } else {
-                return Err(CollectArrayRecoverableError::TooFewItems {
-                    target: SIZE,
-                    accumulated: accumulated.into_iter().collect_vec(),
-                });
-            }
-        }
-        if it.peek().is_some() {
-            return Err(CollectArrayRecoverableError::TooManyItems {
-                target: SIZE,
-                accumulated: accumulated.into_iter().collect_vec(),
-                remaining: it,
-            });
-        }
-        match accumulated.into_inner() {
-            Ok(array) => Ok(array),
-            Err(_) => unreachable!(),
-        }
+        generate_collect_method!(CHECK_TOO_MANY, RETURN_CUSTOM_ERROR, self, SIZE)
     }
 
-    /// Short-circuit version of [`collect_exact_recoverable`](CollectArray::collect_exact_recoverable).
-    /// The result would contain the value wrapped inside `Ok` item from the original iterator.
-    ///
-    /// - TODO: Replace anyhow with custom structs
-    /// - TODO: Provide recoverable version of this method
-    /// - TODO: Provide truncated version of this method
-    fn try_collect_exact<T, E, const SIZE: usize>(mut self) -> anyhow::Result<[T; SIZE]>
-    where
-        Self: Sized + Iterator<Item = Result<T, E>>,
-        E: 'static + StdError + Send + Sync,
-    {
-        let mut accumulated: ArrayVec<T, SIZE> = ArrayVec::new();
-        for _i in 0..SIZE {
-            let item = match self.next() {
-                Some(item) => item?,
-                None => bail!("too few items from the iterator"),
-            };
-            accumulated.push(item);
-        }
-        if self.next().is_some() {
-            bail!("too many items from the iterator");
-        }
-        match accumulated.into_inner() {
-            Ok(array) => Ok(array),
-            Err(_) => unreachable!(),
-        }
-    }
+    // /// Short-circuit version of [`collect_exact_recoverable`](CollectArray::collect_exact_recoverable).
+    // /// The result would contain the value wrapped inside `Ok` item from the original iterator.
+    // ///
+    // /// - TODO: Replace anyhow with custom structs
+    // /// - TODO: Provide recoverable version of this method
+    // /// - TODO: Provide truncated version of this method
+    // fn try_collect_exact<T, E, const SIZE: usize>(mut self) -> anyhow::Result<[T; SIZE]>
+    // where
+    //     Self: Sized + Iterator<Item = Result<T, E>>,
+    //     E: 'static + StdError + Send + Sync,
+    // {
+    //     let mut accumulated: ArrayVec<T, SIZE> = ArrayVec::new();
+    //     for _i in 0..SIZE {
+    //         let item = match self.next() {
+    //             Some(item) => item?,
+    //             None => bail!("too few items from the iterator"),
+    //         };
+    //         accumulated.push(item);
+    //     }
+    //     if self.next().is_some() {
+    //         bail!("too many items from the iterator");
+    //     }
+    //     match accumulated.into_inner() {
+    //         Ok(array) => Ok(array),
+    //         Err(_) => unreachable!(),
+    //     }
+    // }
 
     /// Collects all items from the iterator into a constant-sized array.
     /// Too few items produced will result in an [`CollectArrayError`].
     /// Extraneous items produced by the iterator will not be collected.
     /// If you want a version of this method that provides partial data recovery,
     /// see [`collect_trunc_recoverable`](CollectArray::collect_trunc_recoverable).
-    fn collect_trunc<T, const SIZE: usize>(self) -> Result<[T; SIZE], CollectArrayError>
+    fn collect_trunc<T, const SIZE: usize>(self) -> anyhow::Result<[T; SIZE]>
     where
         Self: Sized + Iterator<Item = T>,
     {
-        Ok(self.collect_trunc_recoverable()?)
+        generate_collect_method!(NO_CHECK_TOO_MANY, RETURN_ANYHOW, self, SIZE)
     }
 
     /// Same as [`collect_trunc_recoverable`](CollectArray::collect_trunc_recoverable)
-    /// but the error type [`CollectArrayRecoverableError`] also returns partial data.
+    /// but the error type [`CollectArrayError`] also returns partial data.
     ///
     /// TODO: create test cases to test error values of this method
     fn collect_trunc_recoverable<T, const SIZE: usize>(
         self,
-    ) -> Result<[T; SIZE], CollectArrayRecoverableError<Self, T>>
+    ) -> Result<[T; SIZE], CollectArrayError<Self, T>>
     where
         Self: Sized + Iterator<Item = T>,
     {
-        let mut it = self.peekable();
-        let mut accumulated: ArrayVec<T, SIZE> = ArrayVec::new();
-        for _i in 0..SIZE {
-            if let Some(item) = it.next() {
-                accumulated.push(item);
-            } else {
-                return Err(CollectArrayRecoverableError::TooFewItems {
-                    target: SIZE,
-                    accumulated: accumulated.into_iter().collect_vec(),
-                });
-            }
-        }
-        match accumulated.into_inner() {
-            Ok(array) => Ok(array),
-            Err(_) => unreachable!(),
-        }
+        generate_collect_method!(NO_CHECK_TOO_MANY, RETURN_CUSTOM_ERROR, self, SIZE)
     }
 }
 
@@ -179,7 +165,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn trunc_ok() {
+    fn collect_trunc_ok() {
         assert_eq!((0..5).collect_trunc::<i64, 5>().unwrap(), [0, 1, 2, 3, 4]);
         assert_eq!(
             "xyz".chars().collect_trunc::<char, 3>().unwrap(),
