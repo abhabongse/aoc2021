@@ -24,40 +24,6 @@ where
     },
 }
 
-macro_rules! generate_too_few_return {
-    (RETURN_CUSTOM_ERROR, $size:ident, $accumulated:ident) => {
-        return Err(CollectArrayError::TooFewItems {
-            target: $size,
-            accumulated: $accumulated.into_iter().collect_vec(),
-        });
-    };
-    (RETURN_ANYHOW, $size:ident, $accumulated:ident) => {
-        bail!(
-            "too few items from the iterator (expected {} but found only {})",
-            $size,
-            $accumulated.len()
-        );
-    };
-}
-
-macro_rules! generate_too_many_return {
-    (NO_CHECK_TOO_MANY, $_1:ident, $_2:ident, $_3:ident, $_4:ident) => {};
-    (CHECK_TOO_MANY, RETURN_CUSTOM_ERROR, $it:ident, $size:ident, $accumulated:ident) => {
-        if $it.peek().is_some() {
-            return Err(CollectArrayError::TooManyItems {
-                target: $size,
-                accumulated: $accumulated.into_iter().collect_vec(),
-                remaining: $it,
-            });
-        }
-    };
-    (CHECK_TOO_MANY, RETURN_ANYHOW, $it:ident, $size:ident, $accumulated:ident) => {
-        if $it.peek().is_some() {
-            bail!("too many items from the iterator (expected only {})", $size);
-        }
-    };
-}
-
 macro_rules! generate_collect_method {
     ($checks_too_many:ident, $method_returns:ident, $it:ident, $size:ident) => {{
         let mut it = $it.peekable();
@@ -66,15 +32,49 @@ macro_rules! generate_collect_method {
             if let Some(item) = it.next() {
                 accumulated.push(item);
             } else {
-                generate_too_few_return!($method_returns, $size, accumulated);
+                generate_collect_method!(_too_few_exit($method_returns, $size, accumulated));
             }
         }
-        generate_too_many_return!($checks_too_many, $method_returns, it, $size, accumulated);
+        generate_collect_method!(_too_many_exit(
+            $checks_too_many,
+            $method_returns,
+            it,
+            $size,
+            accumulated
+        ));
         match accumulated.into_inner() {
             Ok(array) => Ok(array),
             Err(_) => unreachable!(),
         }
     }};
+    (_too_few_exit(RETURN_CUSTOM_ERROR, $size:ident, $accumulated:ident)) => {
+        return Err(CollectArrayError::TooFewItems {
+            target: $size,
+            accumulated: $accumulated.into_iter().collect_vec(),
+        });
+    };
+    (_too_few_exit(RETURN_ANYHOW, $size:ident, $accumulated:ident)) => {
+        bail!(
+            "too few items from the iterator (expected {} but found only {})",
+            $size,
+            $accumulated.len()
+        );
+    };
+    (_too_many_exit(NO_CHECK_TOO_MANY, $_1:ident, $_2:ident, $_3:ident, $_4:ident)) => {};
+    (_too_many_exit(CHECK_TOO_MANY, RETURN_CUSTOM_ERROR, $it:ident, $size:ident, $accumulated:ident)) => {
+        if $it.peek().is_some() {
+            return Err(CollectArrayError::TooManyItems {
+                target: $size,
+                accumulated: $accumulated.into_iter().collect_vec(),
+                remaining: $it,
+            });
+        }
+    };
+    (_too_many_exit(CHECK_TOO_MANY, RETURN_ANYHOW, $it:ident, $size:ident, $accumulated:ident)) => {
+        if $it.peek().is_some() {
+            bail!("too many items from the iterator (expected only {})", $size);
+        }
+    };
 }
 
 /// Trait extension for [`Iterator`] trait which add methods
@@ -162,105 +162,114 @@ impl<I: ?Sized> CollectArray for I where I: Iterator {}
 
 #[cfg(test)]
 mod tests {
+    use paste::paste;
+
     use super::*;
 
-    #[test]
-    fn collect_trunc_ok() {
-        assert_eq!((0..5).collect_trunc::<i64, 5>().unwrap(), [0, 1, 2, 3, 4]);
-        assert_eq!(
-            "xyz".chars().collect_trunc::<char, 3>().unwrap(),
-            ['x', 'y', 'z']
-        );
-        assert_eq!(vec![].into_iter().collect_trunc::<usize, 0>().unwrap(), []);
-        assert_eq!(
-            std::iter::repeat(99).collect_trunc::<i64, 4>().unwrap(),
-            [99, 99, 99, 99]
-        );
-        assert_eq!((0..1000).collect_trunc::<i64, 0>().unwrap(), []);
+    macro_rules! test_collect_trunc_ok {
+        ($test_name:tt, $input:expr, $type:ty, $size:literal, $expected:expr) => {
+            paste! {
+                #[test]
+                fn [< trunc_ok_ $test_name >] () {
+                    assert_eq!($input.collect_trunc::<$type, $size>().unwrap(), $expected);
+                    assert_eq!($input.collect_trunc_recoverable::<$type, $size>().unwrap(), $expected);
+                }
+            }
+        };
     }
+    test_collect_trunc_ok!(0, (0..5), i64, 5, [0, 1, 2, 3, 4]);
+    test_collect_trunc_ok!(1, "xyz".chars(), char, 3, ['x', 'y', 'z']);
+    test_collect_trunc_ok!(2, vec![].into_iter(), usize, 0, []);
+    test_collect_trunc_ok!(3, std::iter::repeat(99), i64, 4, [99, 99, 99, 99]);
+    test_collect_trunc_ok!(4, (0..1000), i64, 0, []);
 
-    #[test]
-    fn trunc_too_few() {
-        assert_eq!(
-            (0..5).collect_trunc::<i64, 6>().unwrap_err().to_string(),
-            "too few items from the iterator (expected 6 but found only 5)"
-        );
-        assert_eq!(
-            "xyz"
-                .chars()
-                .collect_trunc::<char, 7>()
-                .unwrap_err()
-                .to_string(),
-            "too few items from the iterator (expected 7 but found only 3)"
-        );
-        assert_eq!(
-            vec![]
-                .into_iter()
-                .collect_trunc::<usize, 8>()
-                .unwrap_err()
-                .to_string(),
-            "too few items from the iterator (expected 8 but found only 0)"
-        );
+    macro_rules! test_collect_exact_ok {
+        ($test_name:tt, $input:expr, $type:ty, $size:literal, $expected:expr) => {
+            paste! {
+                #[test]
+                fn [< exact_ok_ $test_name >] () {
+                    assert_eq!($input.collect_exact::<$type, $size>().unwrap(), $expected);
+                    assert_eq!($input.collect_exact_recoverable::<$type, $size>().unwrap(), $expected);
+                }
+            }
+        };
     }
+    test_collect_exact_ok!(0, (0..5), i64, 5, [0, 1, 2, 3, 4]);
+    test_collect_exact_ok!(1, "xyz".chars(), char, 3, ['x', 'y', 'z']);
+    test_collect_exact_ok!(2, vec![].into_iter(), usize, 0, []);
 
-    #[test]
-    fn exact_ok() {
-        assert_eq!((0..5).collect_exact::<i64, 5>().unwrap(), [0, 1, 2, 3, 4]);
-        assert_eq!(
-            "xyz".chars().collect_exact::<char, 3>().unwrap(),
-            ['x', 'y', 'z']
-        );
-        assert_eq!(vec![].into_iter().collect_exact::<usize, 0>().unwrap(), []);
+    macro_rules! test_collect_too_few {
+        ($test_name:tt, $input:expr, $type:ty, $size:literal, $expected:expr) => {
+            paste! {
+                #[test]
+                fn [< too_few_ $test_name >] () {
+                    assert_eq!($input.collect_trunc::<$type, $size>().unwrap_err().to_string(), $expected);
+                    assert_eq!($input.collect_trunc_recoverable::<$type, $size>().unwrap_err().to_string(), $expected);
+                    assert_eq!($input.collect_exact::<$type, $size>().unwrap_err().to_string(), $expected);
+                    assert_eq!($input.collect_exact_recoverable::<$type, $size>().unwrap_err().to_string(), $expected);
+                }
+            }
+        };
     }
+    test_collect_too_few!(
+        0,
+        (0..5),
+        i64,
+        6,
+        "too few items from the iterator (expected 6 but found only 5)"
+    );
+    test_collect_too_few!(
+        1,
+        "xyz".chars(),
+        char,
+        7,
+        "too few items from the iterator (expected 7 but found only 3)"
+    );
+    test_collect_too_few!(
+        2,
+        vec![].into_iter(),
+        usize,
+        8,
+        "too few items from the iterator (expected 8 but found only 0)"
+    );
 
-    #[test]
-    fn exact_too_few() {
-        assert_eq!(
-            (0..5).collect_exact::<i64, 6>().unwrap_err().to_string(),
-            "too few items from the iterator (expected 6 but found only 5)"
-        );
-        assert_eq!(
-            "xyz"
-                .chars()
-                .collect_exact::<char, 7>()
-                .unwrap_err()
-                .to_string(),
-            "too few items from the iterator (expected 7 but found only 3)"
-        );
-        assert_eq!(
-            vec![]
-                .into_iter()
-                .collect_exact::<usize, 8>()
-                .unwrap_err()
-                .to_string(),
-            "too few items from the iterator (expected 8 but found only 0)"
-        );
+    macro_rules! test_collect_too_many {
+        ($test_name:tt, $input:expr, $type:ty, $size:literal, $expected:expr) => {
+            paste! {
+                #[test]
+                fn [< too_many_ $test_name >] () {
+                    assert_eq!($input.collect_exact::<$type, $size>().unwrap_err().to_string(), $expected);
+                    assert_eq!($input.collect_exact_recoverable::<$type, $size>().unwrap_err().to_string(), $expected);
+                }
+            }
+        };
     }
-
-    #[test]
-    fn exact_too_many() {
-        assert_eq!(
-            std::iter::repeat(99)
-                .collect_exact::<i64, 8>()
-                .unwrap_err()
-                .to_string(),
-            "too many items from the iterator (expected only 8)"
-        );
-        assert_eq!(
-            (0..1000).collect_exact::<i64, 0>().unwrap_err().to_string(),
-            "too many items from the iterator (expected only 0)"
-        );
-        assert_eq!(
-            (0..5).collect_exact::<i64, 4>().unwrap_err().to_string(),
-            "too many items from the iterator (expected only 4)"
-        );
-        assert_eq!(
-            "xyz"
-                .chars()
-                .collect_exact::<char, 1>()
-                .unwrap_err()
-                .to_string(),
-            "too many items from the iterator (expected only 1)"
-        );
-    }
+    test_collect_too_many!(
+        0,
+        std::iter::repeat(99),
+        i64,
+        8,
+        "too many items from the iterator (expected only 8)"
+    );
+    test_collect_too_many!(
+        1,
+        (0..1000),
+        i64,
+        0,
+        "too many items from the iterator (expected only 0)"
+    );
+    test_collect_too_many!(
+        2,
+        (0..5),
+        i64,
+        4,
+        "too many items from the iterator (expected only 4)"
+    );
+    test_collect_too_many!(
+        3,
+        "xyz".chars(),
+        char,
+        1,
+        "too many items from the iterator (expected only 1)"
+    );
 }
