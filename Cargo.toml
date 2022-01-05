@@ -26,3 +26,6 @@ thiserror = "1.0"
 
 [build-dependencies]
 lalrpop = "0.19.6"
+
+[dev-dependencies]
+test-case = "2.0.0-rc1"
