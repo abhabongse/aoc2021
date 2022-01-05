@@ -25,7 +25,7 @@ where
 }
 
 macro_rules! generate_collect_method {
-    ($checks_too_many:ident, $method_returns:ident, $it:ident, $size:ident) => {{
+    (CHECKS_TOO_MANY:$checks_too_many:ident, METHOD_RETURNS:$method_returns:ident, $it:ident, $size:ident) => {{
         let mut it = $it.peekable();
         let mut accumulated: ArrayVec<T, SIZE> = ArrayVec::new();
         for _i in 0..SIZE {
@@ -47,21 +47,21 @@ macro_rules! generate_collect_method {
             Err(_) => unreachable!(),
         }
     }};
-    (_too_few_exit(RETURN_CUSTOM_ERROR, $size:ident, $accumulated:ident)) => {
+    (_too_few_exit(custom_error, $size:ident, $accumulated:ident)) => {
         return Err(CollectArrayError::TooFewItems {
             target: $size,
             accumulated: $accumulated.into_iter().collect_vec(),
         });
     };
-    (_too_few_exit(RETURN_ANYHOW, $size:ident, $accumulated:ident)) => {
+    (_too_few_exit(anyhow, $size:ident, $accumulated:ident)) => {
         bail!(
             "too few items from the iterator (expected {} but found only {})",
             $size,
             $accumulated.len()
         );
     };
-    (_too_many_exit(NO_CHECK_TOO_MANY, $_1:ident, $_2:ident, $_3:ident, $_4:ident)) => {};
-    (_too_many_exit(CHECK_TOO_MANY, RETURN_CUSTOM_ERROR, $it:ident, $size:ident, $accumulated:ident)) => {
+    (_too_many_exit(false, $($_:expr),*)) => {};
+    (_too_many_exit(true, custom_error, $it:ident, $size:ident, $accumulated:ident)) => {
         if $it.peek().is_some() {
             return Err(CollectArrayError::TooManyItems {
                 target: $size,
@@ -70,7 +70,7 @@ macro_rules! generate_collect_method {
             });
         }
     };
-    (_too_many_exit(CHECK_TOO_MANY, RETURN_ANYHOW, $it:ident, $size:ident, $accumulated:ident)) => {
+    (_too_many_exit(true, anyhow, $it:ident, $size:ident, $accumulated:ident)) => {
         if $it.peek().is_some() {
             bail!("too many items from the iterator (expected only {})", $size);
         }
@@ -88,7 +88,7 @@ pub trait CollectArray: Iterator {
     where
         Self: Sized + Iterator<Item = T>,
     {
-        generate_collect_method!(CHECK_TOO_MANY, RETURN_ANYHOW, self, SIZE)
+        generate_collect_method!(CHECKS_TOO_MANY:true, METHOD_RETURNS:anyhow, self, SIZE)
     }
 
     /// Same as [`collect_exact_recoverable`](CollectArray::collect_exact_recoverable)
@@ -101,7 +101,7 @@ pub trait CollectArray: Iterator {
     where
         Self: Sized + Iterator<Item = T>,
     {
-        generate_collect_method!(CHECK_TOO_MANY, RETURN_CUSTOM_ERROR, self, SIZE)
+        generate_collect_method!(CHECKS_TOO_MANY:true, METHOD_RETURNS:custom_error, self, SIZE)
     }
 
     // /// Short-circuit version of [`collect_exact_recoverable`](CollectArray::collect_exact_recoverable).
@@ -141,7 +141,7 @@ pub trait CollectArray: Iterator {
     where
         Self: Sized + Iterator<Item = T>,
     {
-        generate_collect_method!(NO_CHECK_TOO_MANY, RETURN_ANYHOW, self, SIZE)
+        generate_collect_method!(CHECKS_TOO_MANY:false, METHOD_RETURNS:anyhow, self, SIZE)
     }
 
     /// Same as [`collect_trunc_recoverable`](CollectArray::collect_trunc_recoverable)
@@ -154,7 +154,7 @@ pub trait CollectArray: Iterator {
     where
         Self: Sized + Iterator<Item = T>,
     {
-        generate_collect_method!(NO_CHECK_TOO_MANY, RETURN_CUSTOM_ERROR, self, SIZE)
+        generate_collect_method!(CHECKS_TOO_MANY:false, METHOD_RETURNS:custom_error, self, SIZE)
     }
 }
 
