@@ -13,11 +13,11 @@ use regex::Regex;
 
 use aoc2021::argparser::Cli;
 use aoc2021::collect_array::CollectArray;
-use aoc2021::vecmat::{CardinalMatrix, CardinalVector};
+use aoc2021::vecmat::{CMatrix, CVector};
 
 /// Represents a point in 3-dimensional space
-type VecPoint = CardinalVector<i64, 3>;
-type TransMatrix = CardinalMatrix<i64, 3, 3>;
+type VecPoint = CVector<i64, 3>;
+type TransMatrix = CMatrix<i64, 3, 3>;
 
 lazy_static! {
     static ref CUBE_ROTATIONS: [TransMatrix; 24] = cube_rotations();
@@ -156,7 +156,7 @@ impl Input {
             Ok(value) => value,
             _ => return Some(Err(anyhow!("cannot parse integer"))),
         };
-        Some(Ok(CardinalVector::new([x, y, z])))
+        Some(Ok(CVector::new([x, y, z])))
     }
 }
 
@@ -252,7 +252,7 @@ struct OrientAlignResult {
 
 /// Generates all transformation matrix which would rotate
 /// an axis-aligned cube centered at the origin in all 24 possible ways.
-fn cube_rotations() -> [CardinalMatrix<i64, 3, 3>; 24] {
+fn cube_rotations() -> [CMatrix<i64, 3, 3>; 24] {
     let xyz_rotate_suite = TransMatrix::xyz_rotate_suite();
     let xy_rotate_suite = TransMatrix::xy_rotate_suite();
     let z_rotate_suite = TransMatrix::z_rotate_suite();

@@ -5,16 +5,16 @@ use itertools::izip;
 use num::{Signed, Zero};
 
 use crate::collect_array::CollectArray;
-use crate::vecmat::CardinalMatrix;
+use crate::vecmat::CMatrix;
 
 /// Vector whose size is known at compile time.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct CardinalVector<T, const SIZE: usize>(pub(crate) [T; SIZE]);
+pub struct CVector<T, const SIZE: usize>(pub(crate) [T; SIZE]);
 
-impl<T, const SIZE: usize> CardinalVector<T, SIZE> {
+impl<T, const SIZE: usize> CVector<T, SIZE> {
     /// Creates a new vector from a constant size array.
     pub fn new(elements: [T; SIZE]) -> Self {
-        CardinalVector(elements)
+        CVector(elements)
     }
 
     /// References elements of the vector as a slice.
@@ -85,7 +85,7 @@ impl<T, const SIZE: usize> CardinalVector<T, SIZE> {
     }
 }
 
-impl<T, const SIZE: usize> Index<usize> for CardinalVector<T, SIZE> {
+impl<T, const SIZE: usize> Index<usize> for CVector<T, SIZE> {
     type Output = T;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -93,13 +93,13 @@ impl<T, const SIZE: usize> Index<usize> for CardinalVector<T, SIZE> {
     }
 }
 
-impl<T, const SIZE: usize> IndexMut<usize> for CardinalVector<T, SIZE> {
+impl<T, const SIZE: usize> IndexMut<usize> for CVector<T, SIZE> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         self.get_mut(index).unwrap()
     }
 }
 
-impl<T, const SIZE: usize> Add for CardinalVector<T, SIZE>
+impl<T, const SIZE: usize> Add for CVector<T, SIZE>
 where
     T: Copy + Add<Output = T>,
 {
@@ -110,11 +110,11 @@ where
             .map(|(a, b)| a + b)
             .collect_exact()
             .unwrap();
-        CardinalVector(result)
+        CVector(result)
     }
 }
 
-impl<T, const SIZE: usize> Sub for CardinalVector<T, SIZE>
+impl<T, const SIZE: usize> Sub for CVector<T, SIZE>
 where
     T: Copy + Sub<Output = T>,
 {
@@ -125,11 +125,11 @@ where
             .map(|(a, b)| a - b)
             .collect_exact()
             .unwrap();
-        CardinalVector(result)
+        CVector(result)
     }
 }
 
-impl<T, const SIZE: usize> Neg for CardinalVector<T, SIZE>
+impl<T, const SIZE: usize> Neg for CVector<T, SIZE>
 where
     T: Copy + Neg<Output = T>,
 {
@@ -137,17 +137,17 @@ where
 
     fn neg(self) -> Self::Output {
         let result: [_; SIZE] = self.0.into_iter().map(|a| -a).collect_exact().unwrap();
-        CardinalVector(result)
+        CVector(result)
     }
 }
 
-impl<T, const SIZE: usize> Zero for CardinalVector<T, SIZE>
+impl<T, const SIZE: usize> Zero for CVector<T, SIZE>
 where
     T: Copy + Add<Output = T> + Zero,
 {
     fn zero() -> Self {
         let result = [T::zero(); SIZE];
-        CardinalVector(result)
+        CVector(result)
     }
 
     fn is_zero(&self) -> bool {
@@ -155,14 +155,13 @@ where
     }
 }
 
-impl<T, const JSIZE: usize, const KSIZE: usize> Mul<CardinalMatrix<T, JSIZE, KSIZE>>
-    for CardinalVector<T, JSIZE>
+impl<T, const JSIZE: usize, const KSIZE: usize> Mul<CMatrix<T, JSIZE, KSIZE>> for CVector<T, JSIZE>
 where
     T: Copy + Add<Output = T> + Zero + Mul<Output = T>,
 {
-    type Output = CardinalVector<T, KSIZE>;
+    type Output = CVector<T, KSIZE>;
 
-    fn mul(self, rhs: CardinalMatrix<T, JSIZE, KSIZE>) -> Self::Output {
+    fn mul(self, rhs: CMatrix<T, JSIZE, KSIZE>) -> Self::Output {
         let result: [_; KSIZE] = (0..KSIZE)
             .map(|k| {
                 (0..JSIZE)
@@ -171,11 +170,11 @@ where
             })
             .collect_exact()
             .unwrap();
-        CardinalVector(result)
+        CVector(result)
     }
 }
 
-impl<T> CardinalVector<T, 1> {
+impl<T> CVector<T, 1> {
     /// First member of the vector
     pub fn x(&self) -> T
     where
@@ -185,7 +184,7 @@ impl<T> CardinalVector<T, 1> {
     }
 }
 
-impl<T> CardinalVector<T, 2> {
+impl<T> CVector<T, 2> {
     /// First member of the vector
     pub fn x(&self) -> T
     where
@@ -203,7 +202,7 @@ impl<T> CardinalVector<T, 2> {
     }
 }
 
-impl<T> CardinalVector<T, 3> {
+impl<T> CVector<T, 3> {
     /// First member of the vector
     pub fn x(&self) -> T
     where
@@ -229,7 +228,7 @@ impl<T> CardinalVector<T, 3> {
     }
 }
 
-impl<T> CardinalVector<T, 4> {
+impl<T> CVector<T, 4> {
     /// First member of the vector
     pub fn x(&self) -> T
     where

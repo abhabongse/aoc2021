@@ -1,5 +1,5 @@
-pub use cardinal_matrix::CardinalMatrix;
-pub use cardinal_vector::CardinalVector;
+pub use cmatrix::CMatrix;
+pub use cvector::CVector;
 
-mod cardinal_matrix;
-mod cardinal_vector;
+mod cmatrix;
+mod cvector;
