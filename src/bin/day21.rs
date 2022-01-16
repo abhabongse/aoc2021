@@ -15,13 +15,12 @@ use aoc2021::parsing::QuickParse;
 fn main() {
     let cli = Cli::parse();
     let input_reader = BufReader::new(cli.input_reader().expect("cannot open file"));
-    let Input { p1_stats, p2_stats } =
-        Input::from_buffer(input_reader).expect("cannot parse input");
+    let Input { p1_data, p2_data } = Input::from_buffer(input_reader).expect("cannot parse input");
 
     // Part 1: Deterministic game
     let part1_answer = simulate_deterministic_game(
-        p1_stats.clone(),
-        p2_stats.clone(),
+        p1_data.clone(),
+        p2_data.clone(),
         10,
         1000,
         3,
@@ -38,38 +37,47 @@ fn main() {
 #[derive(Debug, Clone)]
 struct Input {
     /// Player 1 initial statistics
-    p1_stats: PlayerStats,
+    p1_data: PlayerInitState,
     /// Player 2 initial statistics
-    p2_stats: PlayerStats,
+    p2_data: PlayerInitState,
 }
 
 impl Input {
     /// Parses program input from buffered reader.
     fn from_buffer(reader: impl BufRead) -> anyhow::Result<Self> {
         let mut lines = reader.lines();
-        let p1_stats: PlayerStats = lines
+        let p1_data: PlayerInitState = lines
             .next()
             .context("expected first line input")??
             .parse()?;
-        ensure!(p1_stats.id == 1);
-        let p2_stats: PlayerStats = lines
+        ensure!(p1_data.id == 1);
+        let p2_data: PlayerInitState = lines
             .next()
             .context("expected first line input")??
             .parse()?;
-        ensure!(p2_stats.id == 2);
-        Ok(Input { p1_stats, p2_stats })
+        ensure!(p2_data.id == 2);
+        Ok(Input { p1_data, p2_data })
     }
 }
 
-/// Statistics of a player in the Dirac Dice game
+/// Initial state of a player in the Dirac Dice game
 #[derive(Debug, Clone)]
-struct PlayerStats {
+struct PlayerInitState {
     id: u8,
     pos: u64,
-    score: u64,
 }
 
-impl FromStr for PlayerStats {
+impl PlayerInitState {
+    /// Creates the player stat at the start of a new game.
+    fn new_game(&self) -> PlayerStat {
+        PlayerStat {
+            pos: self.pos,
+            score: 0,
+        }
+    }
+}
+
+impl FromStr for PlayerInitState {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -80,12 +88,20 @@ impl FromStr for PlayerStats {
         let captures = PLAYER_INITIAL_STATE
             .captures(s)
             .context("invalid input line format")?;
-        Ok(PlayerStats {
+        Ok(PlayerInitState {
             id: captures[1].quickparse()?,
             pos: captures[2].quickparse()?,
-            score: 0,
         })
     }
+}
+
+/// Current statistic of a player in the Dirac Dice game
+#[derive(Debug, Clone)]
+struct PlayerStat {
+    /// Current position of the player
+    pos: u64,
+    /// Current score of the player
+    score: u64,
 }
 
 /// Simulates the simplified version of the Dirac Dice game
@@ -94,8 +110,8 @@ impl FromStr for PlayerStats {
 /// The iterator `dice_rolls` deterministically determines the sequence of dice rolls.
 /// This function returns the product of the losing player's score and the total number of dice rolls.
 fn simulate_deterministic_game<I>(
-    player1_stats: PlayerStats,
-    player2_stats: PlayerStats,
+    p1_data: PlayerInitState,
+    p2_data: PlayerInitState,
     board_size: u64,
     score_goal: u64,
     rolls_per_turn: usize,
@@ -104,8 +120,8 @@ fn simulate_deterministic_game<I>(
 where
     I: Iterator<Item = u64>,
 {
-    let mut next_player = player1_stats;
-    let mut other_player = player2_stats;
+    let mut next_player = p1_data.new_game();
+    let mut other_player = p2_data.new_game();
     for turn_count in 1.. {
         let move_steps: u64 = dice_rolls.by_ref().take(rolls_per_turn).sum();
         next_player.pos = match (next_player.pos + move_steps) % board_size {
