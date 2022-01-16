@@ -3,7 +3,7 @@
 use std::io::{BufRead, BufReader};
 use std::str::FromStr;
 
-use anyhow::Context;
+use anyhow::{ensure, Context};
 use clap::Parser;
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -18,14 +18,15 @@ fn main() {
     let Input { p1_stats, p2_stats } =
         Input::from_buffer(input_reader).expect("cannot parse input");
 
-    eprintln!("Player {} stats: {:?}", p1_stats.id, p1_stats);
-    eprintln!("Player {} stats: {:?}", p2_stats.id, p2_stats);
-
-    // Part 1: TODO
-    let part1_answer = {
-        let game = GameState::new(10, 1000, p1_stats.clone(), p2_stats.clone());
-        game.simulate((1..=1000).cycle(), 3)
-    };
+    // Part 1: Deterministic game
+    let part1_answer = simulate_deterministic_game(
+        p1_stats.clone(),
+        p2_stats.clone(),
+        10,
+        1000,
+        3,
+        (1..=1000).cycle(),
+    );
     println!("Part 1 answer: {}", part1_answer);
 
     // Part 2: TODO
@@ -36,9 +37,9 @@ fn main() {
 /// Program input data
 #[derive(Debug, Clone)]
 struct Input {
-    /// Player 1 statistics
+    /// Player 1 initial statistics
     p1_stats: PlayerStats,
-    /// Player 2 statistics
+    /// Player 2 initial statistics
     p2_stats: PlayerStats,
 }
 
@@ -50,58 +51,13 @@ impl Input {
             .next()
             .context("expected first line input")??
             .parse()?;
+        ensure!(p1_stats.id == 1);
         let p2_stats: PlayerStats = lines
             .next()
             .context("expected first line input")??
             .parse()?;
+        ensure!(p2_stats.id == 2);
         Ok(Input { p1_stats, p2_stats })
-    }
-}
-
-/// A state of Dirac Dice game
-#[derive(Debug, Clone)]
-struct GameState {
-    /// Size of the board, with each cell labeling `1` through `board_size`
-    board_size: u64,
-    /// Scores required to win the game
-    goal: u64,
-    /// Player statistics
-    player_stats: [PlayerStats; 2],
-}
-
-impl GameState {
-    /// Creates a new game
-    fn new(board_size: u64, goal: u64, p1_stats: PlayerStats, p2_stats: PlayerStats) -> Self {
-        GameState {
-            board_size,
-            goal,
-            player_stats: [p1_stats, p2_stats],
-        }
-    }
-
-    /// Simulate the game with the specified dice rolls until a player wins.
-    /// It returns the product of the losing player's score with the number of times the die is rolled.
-    fn simulate<I>(&self, mut dice_rolls: I, rolls_per_turn: usize) -> u64
-    where
-        I: Iterator<Item = u64>,
-    {
-        let mut next_player = self.player_stats[0].clone();
-        let mut other_player = self.player_stats[1].clone();
-        for turn_count in 1.. {
-            let move_steps: u64 = dice_rolls.by_ref().take(rolls_per_turn).sum();
-            next_player.pos = match (next_player.pos + move_steps) % self.board_size {
-                0 => self.board_size,
-                pos => pos,
-            };
-            next_player.score += next_player.pos;
-
-            if next_player.score >= self.goal {
-                return other_player.score * turn_count * rolls_per_turn as u64;
-            }
-
-            std::mem::swap(&mut next_player, &mut other_player);
-        }
-        unreachable!()
     }
 }
 
@@ -130,4 +86,37 @@ impl FromStr for PlayerStats {
             score: 0,
         })
     }
+}
+
+/// Simulates the simplified version of the Dirac Dice game
+/// using the provided initial player statistics (namely `player1_stats` and `player2_stats`)
+/// with the specified `board_size`, `score_goal`, and the number of `rolls_per_turn`.
+/// The iterator `dice_rolls` deterministically determines the sequence of dice rolls.
+/// This function returns the product of the losing player's score and the total number of dice rolls.
+fn simulate_deterministic_game<I>(
+    player1_stats: PlayerStats,
+    player2_stats: PlayerStats,
+    board_size: u64,
+    score_goal: u64,
+    rolls_per_turn: usize,
+    mut dice_rolls: I,
+) -> u64
+where
+    I: Iterator<Item = u64>,
+{
+    let mut next_player = player1_stats;
+    let mut other_player = player2_stats;
+    for turn_count in 1.. {
+        let move_steps: u64 = dice_rolls.by_ref().take(rolls_per_turn).sum();
+        next_player.pos = match (next_player.pos + move_steps) % board_size {
+            0 => board_size,
+            pos => pos,
+        };
+        next_player.score += next_player.pos;
+        if next_player.score >= score_goal {
+            return other_player.score * turn_count * rolls_per_turn as u64;
+        }
+        std::mem::swap(&mut next_player, &mut other_player);
+    }
+    unreachable!()
 }
