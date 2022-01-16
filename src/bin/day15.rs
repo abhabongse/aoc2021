@@ -9,7 +9,7 @@ use clap::Parser;
 use nalgebra::{DMatrix, RowDVector};
 
 use aoc2021::argparser::Cli;
-use aoc2021::grid::{orth_adjacent, GridPoint};
+use aoc2021::grid::{GridPoint, OrthAdjacent};
 
 /// Main program
 fn main() {
@@ -22,7 +22,7 @@ fn main() {
         let (nrows, ncols) = risk_levels.shape();
         let grid_proxy = GridProxy {
             shape: (nrows, ncols),
-            proxy_map: |pos: GridPoint| -> i64 { risk_levels[pos] },
+            proxy_map: |pos: GridPoint<usize>| -> i64 { risk_levels[pos] },
         };
         shortest_path(&grid_proxy, (0, 0), (nrows - 1, ncols - 1))
     };
@@ -33,7 +33,7 @@ fn main() {
         let (nrows, ncols) = risk_levels.shape();
         let grid_proxy = GridProxy {
             shape: (5 * nrows, 5 * ncols),
-            proxy_map: Box::new(|(i, j): GridPoint| -> i64 {
+            proxy_map: Box::new(|(i, j): GridPoint<usize>| -> i64 {
                 let item = risk_levels[(i % nrows, j % ncols)] + (i / nrows + j / ncols) as i64;
                 match item % 9 {
                     0 => 9,
@@ -77,15 +77,15 @@ impl Input {
 
 /// Computes the length of the shortest path from `start` to `end` within the grid.
 /// Such length consists of the weight sum of all nodes in the part except the start.
-fn shortest_path<F>(grid: &GridProxy<i64, F>, start: GridPoint, end: GridPoint) -> i64
+fn shortest_path<F>(grid: &GridProxy<i64, F>, start: GridPoint<usize>, end: GridPoint<usize>) -> i64
 where
-    F: Fn(GridPoint) -> i64,
+    F: Fn(GridPoint<usize>) -> i64,
 {
     let mut pq = BinaryHeap::from([State {
         pos: start,
         cost: 0,
     }]);
-    let mut dists: HashMap<GridPoint, i64> = HashMap::from([(start, 0)]);
+    let mut dists: HashMap<GridPoint<usize>, i64> = HashMap::from([(start, 0)]);
     while let Some(State { cost, pos }) = pq.pop() {
         if pos == end {
             return cost;
@@ -93,7 +93,7 @@ where
         if cost > dists.get(&pos).copied().unwrap_or(i64::MAX) {
             continue;
         }
-        for other_pos in orth_adjacent(pos, grid.shape) {
+        for other_pos in OrthAdjacent::new(pos).within_shape(grid.shape) {
             let next = State {
                 cost: cost + (grid.proxy_map)(other_pos),
                 pos: other_pos,
@@ -110,7 +110,7 @@ where
 /// Represents the state of each node in priority queue for Dijkstra's algorithm
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 struct State {
-    pos: GridPoint,
+    pos: GridPoint<usize>,
     cost: i64,
 }
 
@@ -132,8 +132,8 @@ impl Ord for State {
 /// Proxy for grid type with item looking being computed on-the-fly
 struct GridProxy<T, F>
 where
-    F: Fn(GridPoint) -> T,
+    F: Fn(GridPoint<usize>) -> T,
 {
-    shape: GridPoint,
+    shape: GridPoint<usize>,
     proxy_map: F,
 }

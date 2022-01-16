@@ -1,8 +1,11 @@
 //! Custom implementation of grid data structure
-//! TODO: Implements Philip N. Klein's style of Vector and Matrix library.
+pub use crate::grid::adjacency::{KingAdjacent, OrthAdjacent};
+pub use crate::grid::enumerate::GridIndices;
+pub use crate::grid::nalgebra::MatrixExt;
 
-pub use self::nalgebra::MatrixExt;
-pub use base::{king_adjacent, orth_adjacent, GridIndices, GridPoint};
+/// A tuple-pair describing grid point represented by integer coordinates on cartesian plane.
+pub type GridPoint<T> = (T, T);
 
-mod base;
+mod adjacency;
+mod enumerate;
 mod nalgebra;

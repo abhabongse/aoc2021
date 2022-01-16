@@ -1,4 +1,4 @@
-use crate::grid::base::GridIndices;
+use crate::grid::enumerate::GridIndices;
 use nalgebra::{Dim, Matrix, RawStorage};
 
 /// Trait extension on [`nalgebra::Matrix`] struct type

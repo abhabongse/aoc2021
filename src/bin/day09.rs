@@ -10,7 +10,7 @@ use itertools::Itertools;
 use nalgebra::{DMatrix, Dim, Matrix, RawStorage, RowDVector};
 
 use aoc2021::argparser::Cli;
-use aoc2021::grid::{orth_adjacent, GridIndices};
+use aoc2021::grid::{GridIndices, OrthAdjacent};
 
 /// Main program
 fn main() {
@@ -21,8 +21,8 @@ fn main() {
     // Find all low points in the heightmap
     let low_points: Vec<_> = GridIndices::row_major(heightmap.shape())
         .filter(|&pos| {
-            orth_adjacent(pos, heightmap.shape())
-                .into_iter()
+            OrthAdjacent::new(pos)
+                .within_shape(heightmap.shape())
                 .all(|other_pos| heightmap[pos] < heightmap[other_pos])
         })
         .collect();
@@ -81,7 +81,7 @@ where
     let mut queue = VecDeque::from([low_point]);
     let mut visited = HashSet::from([low_point]);
     while let Some(pos) = queue.pop_front() {
-        for other_pos in orth_adjacent(pos, shape) {
+        for other_pos in OrthAdjacent::new(pos).within_shape(shape) {
             if heightmap[other_pos] < 9 && !visited.contains(&other_pos) {
                 queue.push_back(other_pos);
                 visited.insert(other_pos);

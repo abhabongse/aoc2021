@@ -11,7 +11,7 @@ use nalgebra::{Dim, Matrix, RawStorage, RawStorageMut, SMatrix};
 
 use aoc2021::argparser::Cli;
 use aoc2021::collect_array::CollectArray;
-use aoc2021::grid::{king_adjacent, MatrixExt};
+use aoc2021::grid::{KingAdjacent, MatrixExt};
 
 /// Main program
 fn main() {
@@ -98,7 +98,7 @@ where
 
     // Step 2: Resolve the triggering chain of flashes
     while let Some(pos) = queue.pop_front() {
-        for other_pos in king_adjacent(pos, grid.shape()) {
+        for other_pos in KingAdjacent::new(pos).within_shape(grid.shape()) {
             grid[other_pos] += 1;
             if grid[other_pos] >= 10 && !marked.contains(&other_pos) {
                 queue.push_back(other_pos);
