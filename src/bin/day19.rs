@@ -75,6 +75,7 @@ fn main() {
 /// Program input data
 #[derive(Debug, Clone)]
 struct Input {
+    /// Collection of beacon locations by each scanner
     reports: Vec<Report>,
 }
 

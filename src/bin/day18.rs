@@ -49,6 +49,7 @@ fn main() {
 /// Program input data
 #[derive(Debug, Clone)]
 struct Input {
+    /// List of snailfish numbers in homework exercise
     numbers: Vec<Node>,
 }
 

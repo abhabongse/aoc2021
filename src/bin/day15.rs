@@ -49,6 +49,7 @@ fn main() {
 /// Program input data
 #[derive(Debug, Clone)]
 struct Input {
+    /// Risk levels of each position in a grid
     risk_levels: DMatrix<i64>,
 }
 

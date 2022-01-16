@@ -42,6 +42,7 @@ fn main() {
 /// Program input data
 #[derive(Debug, Clone)]
 struct Input {
+    /// Trick shot target range
     target: Rect<i64>,
 }
 
