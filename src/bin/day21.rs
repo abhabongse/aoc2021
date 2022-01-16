@@ -104,6 +104,17 @@ struct PlayerStat {
     score: u64,
 }
 
+impl PlayerStat {
+    /// Updates player's current statistics.
+    fn update(&mut self, move_steps: u64, board_size: u64) {
+        self.pos = match (self.pos + move_steps) % board_size {
+            0 => board_size,
+            pos => pos,
+        };
+        self.score += self.pos;
+    }
+}
+
 /// Simulates the simplified version of the Dirac Dice game
 /// using the provided initial player statistics (namely `player1_stats` and `player2_stats`)
 /// with the specified `board_size`, `score_goal`, and the number of `rolls_per_turn`.
@@ -124,11 +135,7 @@ where
     let mut other_player = p2_data.new_game();
     for turn_count in 1.. {
         let move_steps: u64 = dice_rolls.by_ref().take(rolls_per_turn).sum();
-        next_player.pos = match (next_player.pos + move_steps) % board_size {
-            0 => board_size,
-            pos => pos,
-        };
-        next_player.score += next_player.pos;
+        next_player.update(move_steps, board_size);
         if next_player.score >= score_goal {
             return other_player.score * turn_count * rolls_per_turn as u64;
         }
