@@ -1,6 +1,6 @@
 //! Day 11: Dumbo Octopus, Advent of Code 2021  
 //! <https://adventofcode.com/2021/day/11>
-use std::collections::{HashSet, VecDeque};
+use std::collections::VecDeque;
 use std::io;
 use std::io::{BufRead, BufReader, Write};
 use std::ops::ControlFlow;
@@ -12,6 +12,7 @@ use nalgebra::{Dim, Matrix, RawStorage, RawStorageMut, SMatrix};
 use aoc2021::argparser::Cli;
 use aoc2021::collect_array::CollectArray;
 use aoc2021::grid::{KingAdjacent, MatrixExt};
+use aoc2021::hashing::HashSet;
 
 /// Main program
 fn main() {
@@ -85,7 +86,7 @@ where
     S: RawStorageMut<u8, R, C>,
 {
     let mut queue = VecDeque::new();
-    let mut marked = HashSet::new();
+    let mut marked = HashSet::default();
 
     // Step 1: Increment energy level of each grid cell by one
     for pos in grid.indices() {

@@ -1,7 +1,7 @@
 //! Day 9: Smoke Basin, Advent of Code 2021  
 //! <https://adventofcode.com/2021/day/9>
 use std::cmp::Reverse;
-use std::collections::{HashSet, VecDeque};
+use std::collections::VecDeque;
 use std::io::{BufRead, BufReader};
 
 use anyhow::Context;
@@ -11,6 +11,7 @@ use nalgebra::{DMatrix, Dim, Matrix, RawStorage, RowDVector};
 
 use aoc2021::argparser::Cli;
 use aoc2021::grid::{GridIndices, OrthAdjacent};
+use aoc2021::hashing::HashSet;
 
 /// Main program
 fn main() {
@@ -79,7 +80,7 @@ where
 {
     let shape = heightmap.shape();
     let mut queue = VecDeque::from([low_point]);
-    let mut visited = HashSet::from([low_point]);
+    let mut visited = HashSet::from_iter([low_point]);
     while let Some(pos) = queue.pop_front() {
         for other_pos in OrthAdjacent::new(pos).within_shape(shape) {
             if heightmap[other_pos] < 9 && !visited.contains(&other_pos) {

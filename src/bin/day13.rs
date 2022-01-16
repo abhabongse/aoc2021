@@ -1,6 +1,5 @@
 //! Day 13: Transparent Origami, Advent of Code 2021  
 //! <https://adventofcode.com/2021/day/13>
-use std::collections::HashSet;
 use std::io;
 use std::io::{BufRead, BufReader, Write};
 
@@ -11,6 +10,7 @@ use regex::Regex;
 
 use aoc2021::argparser::Cli;
 use aoc2021::collect_array::CollectArray;
+use aoc2021::hashing::HashSet;
 use aoc2021::parsing::QuickParse;
 
 /// Main program

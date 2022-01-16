@@ -1,6 +1,5 @@
 //! Day 12: Passage Pathing, Advent of Code 2021  
 //! <https://adventofcode.com/2021/day/12>
-use std::collections::HashMap;
 use std::io::{BufRead, BufReader};
 
 use anyhow::Context;
@@ -9,6 +8,7 @@ use itertools::Itertools;
 
 use aoc2021::argparser::Cli;
 use aoc2021::collect_array::CollectArray;
+use aoc2021::hashing::HashMap;
 
 /// Main program
 fn main() {
@@ -99,7 +99,7 @@ impl Graph {
     /// Constructs a new graph instance.
     fn new() -> Self {
         Graph {
-            adjlists: HashMap::new(),
+            adjlists: HashMap::default(),
         }
     }
 

@@ -1,7 +1,7 @@
 //! Day 15: Chiton, Advent of Code 2021  
 //! <https://adventofcode.com/2021/day/15>
 use std::cmp::Ordering;
-use std::collections::{BinaryHeap, HashMap};
+use std::collections::BinaryHeap;
 use std::io::{BufRead, BufReader};
 
 use anyhow::Context;
@@ -10,6 +10,7 @@ use nalgebra::{DMatrix, RowDVector};
 
 use aoc2021::argparser::Cli;
 use aoc2021::grid::{GridPoint, OrthAdjacent};
+use aoc2021::hashing::HashMap;
 
 /// Main program
 fn main() {
@@ -85,7 +86,7 @@ where
         pos: start,
         cost: 0,
     }]);
-    let mut dists: HashMap<GridPoint<usize>, i64> = HashMap::from([(start, 0)]);
+    let mut dists: HashMap<GridPoint<usize>, i64> = HashMap::from_iter([(start, 0)]);
     while let Some(State { cost, pos }) = pq.pop() {
         if pos == end {
             return cost;

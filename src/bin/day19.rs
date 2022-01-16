@@ -1,6 +1,6 @@
 //! Day 19: Beacon Scanner, Advent of Code 2021  
 //! <https://adventofcode.com/2021/day/19>
-use std::collections::{HashSet, VecDeque};
+use std::collections::VecDeque;
 use std::fmt::Debug;
 use std::io::{BufRead, BufReader};
 
@@ -13,6 +13,7 @@ use regex::Regex;
 
 use aoc2021::argparser::Cli;
 use aoc2021::collect_array::CollectArray;
+use aoc2021::hashing::HashSet;
 use aoc2021::vecmat::{CMatrix, CVector};
 
 /// Represents a point in 3-dimensional space
@@ -37,7 +38,7 @@ fn main() {
     };
     let mut base_report_queue = VecDeque::from([genesis_report]);
     let mut remaining = reports[1..].iter().cloned().collect_vec();
-    let mut beacons = HashSet::new();
+    let mut beacons = HashSet::default();
     let mut scanners = Vec::new();
 
     // Take a base report from the queue and try to

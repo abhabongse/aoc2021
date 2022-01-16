@@ -1,6 +1,5 @@
 //! Day 4: Giant Squid, Advent of Code 2021  
 //! <https://adventofcode.com/2021/day/4>
-use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::io;
@@ -16,6 +15,7 @@ use num::PrimInt;
 use aoc2021::argparser::Cli;
 use aoc2021::collect_array::CollectArray;
 use aoc2021::grid::GridIndices;
+use aoc2021::hashing::HashMap;
 use aoc2021::parsing::QuickParse;
 
 /// Main program
