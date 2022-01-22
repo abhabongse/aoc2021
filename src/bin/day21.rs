@@ -15,17 +15,13 @@ use aoc2021::parsing::QuickParse;
 fn main() {
     let cli = Cli::parse();
     let input_reader = BufReader::new(cli.input_reader().expect("cannot open file"));
-    let Input { p1_data, p2_data } = Input::from_buffer(input_reader).expect("cannot parse input");
+    let Input { player_data } = Input::from_buffer(input_reader).expect("cannot parse input");
 
     // Part 1: Deterministic game
     let part1_answer = {
-        let game_result = simulate_deterministic_game(
-            [p1_data.clone(), p2_data.clone()],
-            10,
-            1000,
-            3,
-            (1..=1000).cycle(),
-        );
+        let game_config = GameConfig::new(10, 1000, 3);
+        let game_result =
+            simulate_deterministic_game(&player_data, &game_config, (1..=1000).cycle());
         game_result.losing_player().score * game_result.total_rolls
     };
     println!("Part 1 answer: {}", part1_answer);
@@ -38,39 +34,40 @@ fn main() {
 /// Program input data
 #[derive(Debug, Clone)]
 struct Input {
-    /// Player 1 initial statistics
-    p1_data: PlayerInitState,
-    /// Player 2 initial statistics
-    p2_data: PlayerInitState,
+    /// Initial states of both players in a game of dice
+    player_data: [PlayerInitState; 2],
 }
 
 impl Input {
     /// Parses program input from buffered reader.
     fn from_buffer(reader: impl BufRead) -> anyhow::Result<Self> {
         let mut lines = reader.lines();
-        let p1_data: PlayerInitState = lines
+        let p1_init_state: PlayerInitState = lines
             .next()
             .context("expected first line input")??
             .parse()?;
-        ensure!(p1_data.id == 1);
-        let p2_data: PlayerInitState = lines
+        ensure!(p1_init_state.id == 1);
+        let p2_init_state: PlayerInitState = lines
             .next()
             .context("expected first line input")??
             .parse()?;
-        ensure!(p2_data.id == 2);
-        Ok(Input { p1_data, p2_data })
+        ensure!(p2_init_state.id == 2);
+        let player_data = [p1_init_state, p2_init_state];
+        Ok(Input { player_data })
     }
 }
 
-/// Initial state of a player in the Dirac Dice game
+/// Initial state of a player in a game of dice
 #[derive(Debug, Clone)]
 struct PlayerInitState {
+    /// Player's ID
     id: u8,
+    /// Player's starting position
     pos: u64,
 }
 
 impl PlayerInitState {
-    /// Creates the player stat at the start of a new game.
+    /// Creates the player statistics tracking object for a new game.
     fn new_game(&self) -> PlayerStat {
         PlayerStat {
             pos: self.pos,
@@ -97,7 +94,7 @@ impl FromStr for PlayerInitState {
     }
 }
 
-/// Current statistic of a player in the Dirac Dice game
+/// Current statistic of a player in a game of dice
 #[derive(Debug, Clone)]
 struct PlayerStat {
     /// Current position of the player
@@ -107,10 +104,11 @@ struct PlayerStat {
 }
 
 impl PlayerStat {
-    /// Updates player's current statistics and returns as new struct.
-    fn get_updated(&self, move_steps: u64, board_size: u64) -> Self {
-        let pos = match (self.pos + move_steps) % board_size {
-            0 => board_size,
+    /// Obtains the statistics of the player as a new struct
+    /// based on the number of move steps and game configuration.
+    fn get_updated(&self, move_steps: u64, game_config: &GameConfig) -> Self {
+        let pos = match (self.pos + move_steps) % game_config.board_size {
+            0 => game_config.board_size,
             pos => pos,
         };
         let score = self.score + pos;
@@ -118,7 +116,30 @@ impl PlayerStat {
     }
 }
 
-/// Final result for the simplified version of the dice game
+/// Configuration data for a game of dice
+#[derive(Debug, Clone)]
+struct GameConfig {
+    /// Size of the board; board spaces are labeled from 1 through `board_size`
+    /// and wraps around in the clockwise order
+    board_size: u64,
+    /// Minimum score required to be declared as winning player
+    score_goal: u64,
+    /// Number of dice rolls per player's turn
+    rolls_per_turn: usize,
+}
+
+impl GameConfig {
+    /// Creates a new configuration for a game of dice.
+    fn new(board_size: u64, score_goal: u64, rolls_per_turn: usize) -> Self {
+        GameConfig {
+            board_size,
+            score_goal,
+            rolls_per_turn,
+        }
+    }
+}
+
+/// Final result for the simplified version of the game of dice
 #[derive(Debug, Clone)]
 struct SimplifiedGameResult {
     player_stats: [PlayerStat; 2],
@@ -133,25 +154,20 @@ impl SimplifiedGameResult {
     }
 }
 
-/// Simulates the simplified version of the dice game using the provided `player_data`
-/// with the specified `board_size`, `score_goal`, and the number of `rolls_per_turn`.
-/// The board circular cells are labeled `1` through `board_size` respectively.
-/// The infinite iterator `dice_roll` deterministically determines the sequence of dice roll outcomes
-/// (the function will panic if the `dice_roll` runs out of items from the iterator).
-fn simulate_deterministic_game<I>(
-    player_data: [PlayerInitState; 2],
-    board_size: u64,
-    score_goal: u64,
-    rolls_per_turn: usize,
-    mut dice_rolls: I,
-) -> SimplifiedGameResult
-where
-    I: Iterator<Item = u64>,
-{
+/// Simulates the simplified version of the game of dice
+/// using the given initial `player_data`, the `game_config`,
+/// and the infinite sequence of deterministic `dice_roll` outcomes.
+/// Note that if the `dice_roll` was exhausted before the game ends then this function will panic.
+/// Otherwise it returns the final result of the game.
+fn simulate_deterministic_game(
+    player_data: &[PlayerInitState; 2],
+    game_config: &GameConfig,
+    mut dice_rolls: impl Iterator<Item = u64>,
+) -> SimplifiedGameResult {
     let mut player_stats = [player_data[0].new_game(), player_data[1].new_game()];
     let mut roll = || {
         let mut total = 0;
-        for _ in 0..rolls_per_turn {
+        for _ in 0..game_config.rolls_per_turn {
             total += dice_rolls
                 .next()
                 .context("dice roll should be infinite")
@@ -164,25 +180,25 @@ where
         let next_player_index = (turn_count - 1) % 2;
         let next_player = &mut player_stats[next_player_index];
         let move_steps = roll();
-        *next_player = next_player.get_updated(move_steps, board_size);
-        if next_player.score >= score_goal {
+        *next_player = next_player.get_updated(move_steps, game_config);
+        if next_player.score >= game_config.score_goal {
             return SimplifiedGameResult {
                 player_stats,
                 winning_player_index: next_player_index,
-                total_rolls: (turn_count * rolls_per_turn) as u64,
+                total_rolls: (turn_count * game_config.rolls_per_turn) as u64,
             };
         }
     }
     unreachable!()
 }
 
+/// Simulates the Dirac (multiple universe explosion) version of the game of dice
+/// using the given initial `player_data`, the `game_config`,
+/// and a sequence of all possible outcomes of `dice_faces` after each roll.
 fn simulate_dirac_game(
-    p1_data: PlayerInitState,
-    p2_data: PlayerInitState,
-    board_size: u64,
-    score_goal: u64,
-    rolls_per_turn: usize,
+    player_data: &[PlayerInitState; 2],
+    game_config: &GameConfig,
     dice_faces: &[u64],
-) -> u64 {
+) -> DiracGameResult {
     todo!()
 }
