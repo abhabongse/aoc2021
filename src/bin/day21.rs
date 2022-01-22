@@ -18,14 +18,16 @@ fn main() {
     let Input { p1_data, p2_data } = Input::from_buffer(input_reader).expect("cannot parse input");
 
     // Part 1: Deterministic game
-    let part1_answer = simulate_deterministic_game(
-        p1_data.clone(),
-        p2_data.clone(),
-        10,
-        1000,
-        3,
-        (1..=1000).cycle(),
-    );
+    let part1_answer = {
+        let game_result = simulate_deterministic_game(
+            [p1_data.clone(), p2_data.clone()],
+            10,
+            1000,
+            3,
+            (1..=1000).cycle(),
+        );
+        game_result.losing_player().score * game_result.total_rolls
+    };
     println!("Part 1 answer: {}", part1_answer);
 
     // Part 2: TODO
@@ -105,41 +107,82 @@ struct PlayerStat {
 }
 
 impl PlayerStat {
-    /// Updates player's current statistics.
-    fn update(&mut self, move_steps: u64, board_size: u64) {
-        self.pos = match (self.pos + move_steps) % board_size {
+    /// Updates player's current statistics and returns as new struct.
+    fn get_updated(&self, move_steps: u64, board_size: u64) -> Self {
+        let pos = match (self.pos + move_steps) % board_size {
             0 => board_size,
             pos => pos,
         };
-        self.score += self.pos;
+        let score = self.score + pos;
+        PlayerStat { pos, score }
     }
 }
 
-/// Simulates the simplified version of the Dirac Dice game
-/// using the provided initial player statistics (namely `player1_stats` and `player2_stats`)
+/// Final result for the simplified version of the dice game
+#[derive(Debug, Clone)]
+struct SimplifiedGameResult {
+    player_stats: [PlayerStat; 2],
+    winning_player_index: usize,
+    total_rolls: u64,
+}
+
+impl SimplifiedGameResult {
+    /// Obtains the losing player statistics
+    fn losing_player(&self) -> &PlayerStat {
+        &self.player_stats[1 - self.winning_player_index]
+    }
+}
+
+/// Simulates the simplified version of the dice game using the provided `player_data`
 /// with the specified `board_size`, `score_goal`, and the number of `rolls_per_turn`.
-/// The iterator `dice_rolls` deterministically determines the sequence of dice rolls.
-/// This function returns the product of the losing player's score and the total number of dice rolls.
+/// The board circular cells are labeled `1` through `board_size` respectively.
+/// The infinite iterator `dice_roll` deterministically determines the sequence of dice roll outcomes
+/// (the function will panic if the `dice_roll` runs out of items from the iterator).
 fn simulate_deterministic_game<I>(
+    player_data: [PlayerInitState; 2],
+    board_size: u64,
+    score_goal: u64,
+    rolls_per_turn: usize,
+    mut dice_rolls: I,
+) -> SimplifiedGameResult
+where
+    I: Iterator<Item = u64>,
+{
+    let mut player_stats = [player_data[0].new_game(), player_data[1].new_game()];
+    let mut roll = || {
+        let mut total = 0;
+        for _ in 0..rolls_per_turn {
+            total += dice_rolls
+                .next()
+                .context("dice roll should be infinite")
+                .unwrap();
+        }
+        total
+    };
+
+    for turn_count in 1.. {
+        let next_player_index = (turn_count - 1) % 2;
+        let next_player = &mut player_stats[next_player_index];
+        let move_steps = roll();
+        *next_player = next_player.get_updated(move_steps, board_size);
+        if next_player.score >= score_goal {
+            return SimplifiedGameResult {
+                player_stats,
+                winning_player_index: next_player_index,
+                total_rolls: (turn_count * rolls_per_turn) as u64,
+            };
+        }
+    }
+    unreachable!()
+}
+
+fn simulate_dirac_game(
     p1_data: PlayerInitState,
     p2_data: PlayerInitState,
     board_size: u64,
     score_goal: u64,
     rolls_per_turn: usize,
-    mut dice_rolls: I,
-) -> u64
-where
-    I: Iterator<Item = u64>,
-{
-    let mut next_player = p1_data.new_game();
-    let mut other_player = p2_data.new_game();
-    for turn_count in 1.. {
-        let move_steps: u64 = dice_rolls.by_ref().take(rolls_per_turn).sum();
-        next_player.update(move_steps, board_size);
-        if next_player.score >= score_goal {
-            return other_player.score * turn_count * rolls_per_turn as u64;
-        }
-        std::mem::swap(&mut next_player, &mut other_player);
-    }
-    unreachable!()
+    dice_faces: &[u64],
+) -> u64 {
+    todo!()
 }
