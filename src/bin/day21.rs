@@ -5,10 +5,12 @@ use std::str::FromStr;
 
 use anyhow::{ensure, Context};
 use clap::Parser;
+use itertools::iproduct;
 use lazy_static::lazy_static;
 use regex::Regex;
 
 use aoc2021::argparser::Cli;
+use aoc2021::hashing::HashMap;
 use aoc2021::parsing::QuickParse;
 
 /// Main program
@@ -26,8 +28,12 @@ fn main() {
     };
     println!("Part 1 answer: {}", part1_answer);
 
-    // Part 2: TODO
-    let part2_answer = 0;
+    // Part 2: Dirac game
+    let part2_answer = {
+        let game_config = GameConfig::new(10, 21, 3);
+        let game_result = simulate_dirac_game(&player_data, &game_config, [1, 2, 3].as_slice());
+        u64::max(game_result.winning_counts[0], game_result.winning_counts[1])
+    };
     println!("Part 2 answer: {}", part2_answer);
 }
 
@@ -95,7 +101,7 @@ impl FromStr for PlayerInitState {
 }
 
 /// Current statistic of a player in a game of dice
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct PlayerStat {
     /// Current position of the player
     pos: u64,
@@ -137,6 +143,14 @@ impl GameConfig {
             rolls_per_turn,
         }
     }
+
+    /// Iterator that generates a sequence of all possible combinations of in-game player statistics
+    /// starting from lowest scores first.
+    fn stats_space(&self) -> Vec<PlayerStat> {
+        iproduct!(0..self.score_goal, 1..=self.board_size)
+            .map(|(score, pos)| PlayerStat { pos, score })
+            .collect()
+    }
 }
 
 /// Final result for the simplified version of the game of dice
@@ -152,6 +166,12 @@ impl SimplifiedGameResult {
     fn losing_player(&self) -> &PlayerStat {
         &self.player_stats[1 - self.winning_player_index]
     }
+}
+
+/// Final result for the Dirac game of dice
+#[derive(Debug, Clone)]
+struct DiracGameResult {
+    winning_counts: [u64; 2],
 }
 
 /// Simulates the simplified version of the game of dice
@@ -200,5 +220,24 @@ fn simulate_dirac_game(
     game_config: &GameConfig,
     dice_faces: &[u64],
 ) -> DiracGameResult {
+    let mut table: HashMap<(PlayerStat, PlayerStat, usize), u64> = HashMap::default();
+    table.insert((player_data[0].new_game(), player_data[1].new_game(), 0), 1);
+
+    let stats_space = game_config.stats_space();
+    for (p1_stat, p2_stat, next_player_index) in
+        iproduct!(stats_space.iter(), stats_space.iter(), [0, 1])
+    {
+        let index = (p1_stat.clone(), p2_stat.clone(), next_player_index);
+        let count = match table.get(&index) {
+            None => continue,
+            Some(&v) => v,
+        };
+
+        eprintln!(
+            "{:?} {:?} {:?} => {:?}",
+            p1_stat, p2_stat, next_player_index, count
+        );
+    }
+
     todo!()
 }
