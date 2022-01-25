@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use anyhow::{ensure, Context};
 use clap::Parser;
-use itertools::iproduct;
+use itertools::{iproduct, Itertools};
 use lazy_static::lazy_static;
 use regex::Regex;
 
@@ -151,20 +151,69 @@ impl GameConfig {
             .map(|(score, pos)| PlayerStat { pos, score })
             .collect()
     }
+
+    /// Computes the step ladders: a distribution of moving steps by their likelihood
+    fn ladders(&self, dice_faces: &[u64]) -> Vec<Ladder> {
+        let counts = (0..self.rolls_per_turn)
+            .map(|_| dice_faces.iter())
+            .multi_cartesian_product()
+            .map(|v| v.into_iter().sum::<u64>())
+            .counts();
+        counts
+            .keys()
+            .sorted()
+            .map(|steps| Ladder {
+                steps: *steps,
+                freq: counts[steps] as u64,
+            })
+            .collect()
+    }
+}
+
+/// Moving step ladders
+#[derive(Debug, Clone)]
+struct Ladder {
+    steps: u64,
+    freq: u64,
+}
+
+/// Player identifier
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum Player {
+    One,
+    Two,
+}
+
+impl Player {
+    /// Converts player object as an index
+    fn as_index(&self) -> usize {
+        match self {
+            Player::One => 0,
+            Player::Two => 1,
+        }
+    }
+
+    /// Obtains another player
+    fn other(&self) -> Self {
+        match self {
+            Player::One => Player::Two,
+            Player::Two => Player::One,
+        }
+    }
 }
 
 /// Final result for the simplified version of the game of dice
 #[derive(Debug, Clone)]
 struct SimplifiedGameResult {
     player_stats: [PlayerStat; 2],
-    winning_player_index: usize,
+    winning_player: Player,
     total_rolls: u64,
 }
 
 impl SimplifiedGameResult {
     /// Obtains the losing player statistics
     fn losing_player(&self) -> &PlayerStat {
-        &self.player_stats[1 - self.winning_player_index]
+        &self.player_stats[self.winning_player.other().as_index()]
     }
 }
 
@@ -185,27 +234,23 @@ fn simulate_deterministic_game(
     mut dice_rolls: impl Iterator<Item = u64>,
 ) -> SimplifiedGameResult {
     let mut player_stats = [player_data[0].new_game(), player_data[1].new_game()];
-    let mut roll = || {
-        let mut total = 0;
-        for _ in 0..game_config.rolls_per_turn {
-            total += dice_rolls
-                .next()
-                .context("dice roll should be infinite")
-                .unwrap();
-        }
-        total
+    let mut roll = |total_rolls: &mut u64| -> u64 {
+        *total_rolls += game_config.rolls_per_turn as u64;
+        (0..game_config.rolls_per_turn)
+            .map(|_| dice_rolls.next().unwrap())
+            .sum()
     };
 
-    for turn_count in 1.. {
-        let next_player_index = (turn_count - 1) % 2;
-        let next_player = &mut player_stats[next_player_index];
-        let move_steps = roll();
-        *next_player = next_player.get_updated(move_steps, game_config);
-        if next_player.score >= game_config.score_goal {
+    let mut total_rolls: u64 = 0;
+    for next_player in [Player::One, Player::Two].into_iter().cycle() {
+        let next_stat = &mut player_stats[next_player.as_index()];
+        let move_steps = roll(&mut total_rolls);
+        *next_stat = next_stat.get_updated(move_steps, game_config);
+        if next_stat.score >= game_config.score_goal {
             return SimplifiedGameResult {
                 player_stats,
-                winning_player_index: next_player_index,
-                total_rolls: (turn_count * game_config.rolls_per_turn) as u64,
+                winning_player: next_player,
+                total_rolls,
             };
         }
     }
@@ -220,24 +265,57 @@ fn simulate_dirac_game(
     game_config: &GameConfig,
     dice_faces: &[u64],
 ) -> DiracGameResult {
-    let mut table: HashMap<(PlayerStat, PlayerStat, usize), u64> = HashMap::default();
-    table.insert((player_data[0].new_game(), player_data[1].new_game(), 0), 1);
+    let mut table: HashMap<(PlayerStat, PlayerStat, Player), u64> = HashMap::default();
+    table.insert(
+        (
+            player_data[0].new_game(),
+            player_data[1].new_game(),
+            Player::One,
+        ),
+        1,
+    );
 
+    let ladders = game_config.ladders(dice_faces);
     let stats_space = game_config.stats_space();
-    for (p1_stat, p2_stat, next_player_index) in
-        iproduct!(stats_space.iter(), stats_space.iter(), [0, 1])
-    {
-        let index = (p1_stat.clone(), p2_stat.clone(), next_player_index);
+    let mut winning_counts = [0; 2];
+    for (p1_stat, p2_stat, player_index) in iproduct!(
+        stats_space.iter(),
+        stats_space.iter(),
+        [Player::One, Player::Two]
+    ) {
+        let index = (p1_stat.clone(), p2_stat.clone(), player_index);
         let count = match table.get(&index) {
             None => continue,
             Some(&v) => v,
         };
 
-        eprintln!(
-            "{:?} {:?} {:?} => {:?}",
-            p1_stat, p2_stat, next_player_index, count
-        );
+        // eprintln!(
+        //     "{:?} {:?} {:?} => {:?}",
+        //     p1_stat, p2_stat, player_index, count
+        // );
+
+        for ladder in ladders.iter() {
+            let next_index = match player_index {
+                Player::One => {
+                    let p1_updated = p1_stat.get_updated(ladder.steps, game_config);
+                    if p1_updated.score >= game_config.score_goal {
+                        winning_counts[0] += ladder.freq * count;
+                        continue;
+                    }
+                    (p1_updated, p2_stat.clone(), player_index.other())
+                }
+                Player::Two => {
+                    let p2_updated = p2_stat.get_updated(ladder.steps, game_config);
+                    if p2_updated.score >= game_config.score_goal {
+                        winning_counts[1] += ladder.freq * count;
+                        continue;
+                    }
+                    (p1_stat.clone(), p2_updated, player_index.other())
+                }
+            };
+            *table.entry(next_index).or_insert(0) += ladder.freq * count;
+        }
     }
 
-    todo!()
+    DiracGameResult { winning_counts }
 }
