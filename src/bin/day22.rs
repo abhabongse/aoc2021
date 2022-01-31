@@ -207,11 +207,9 @@ fn on_cubes(reboot_steps: &[RebootStep]) -> i64 {
         IntervalByCoords::intersect_from_intervals(reboot_steps.iter().map(|s| s.cuboid.y.clone()));
     let z_intervals =
         IntervalByCoords::intersect_from_intervals(reboot_steps.iter().map(|s| s.cuboid.z.clone()));
-    // eprintln!("{x_intervals:?}");
 
     iproduct!(x_intervals, y_intervals, z_intervals)
         .map(|(x, y, z)| {
-            // eprintln!("{x:?}, {y:?}, {z:?}");
             let cuboid = Cuboid { x, y, z };
             let state = reboot_steps
                 .iter()
